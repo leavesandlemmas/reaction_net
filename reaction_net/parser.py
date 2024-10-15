@@ -1,6 +1,6 @@
 import re
 import itertools
-from utils import make_index_map, unique_list
+from reaction_net.utils import unique_list
    
 def parse_reaction(reaction):
     

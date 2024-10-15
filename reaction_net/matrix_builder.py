@@ -1,5 +1,5 @@
 import re 
-from utils import enumerate_reactions, make_index_map
+from reaction_net.utils import enumerate_reactions, make_index_map
 
 
 def make_matrix_builder(dok_generator):
@@ -68,12 +68,21 @@ def stoichiometric_matrix_dok(species, reactions):
         left, _, right = reaction
 
         for (coef, sp) in parse_vertex(left):
-            s = species_index[sp]
-            yield (s, n, -coef) 
+            try:
+                s = species_index[sp]
+                yield (s, n, -coef) 
 
+            except KeyError:
+                continue
+                
+            
         for (coef, sp) in parse_vertex(right):
-            s = species_index[sp]
-            yield (s, n, coef) 
+            try:
+                s = species_index[sp]
+                yield (s, n, coef) 
+
+            except KeyError:
+                continue
 
 
 def reactant_matrix_dok(species, reactions):
