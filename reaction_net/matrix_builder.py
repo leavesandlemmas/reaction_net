@@ -84,6 +84,12 @@ def stoichiometric_matrix_dok(species, reactions):
             except KeyError:
                 continue
 
+def incidence_from_adjacency(adjacency_dok):
+    for n, (i,j,val) in enumerate(adjacency_dok):
+        yield (j, n, -1)
+        yield (i, n,  1)
+    
+
 
 def reactant_matrix_dok(species, reactions):
     species_index = make_index_map(species)
