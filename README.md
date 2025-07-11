@@ -1,13 +1,31 @@
 # reaction_net
 
-`reaction_net` is a python library for manipulating networks of chemical reactions. For example, consider the following reactions:
+`reaction_net` is a parser and compiler designed for mathematical models of chemical reaction networks found in biology and chemistry. For example, consider the following reactions:
 
 ```
-A + B -> C
-C -> D
-D <-> E
+1 : A + B -> C
+2 : C -> D
+3 : D <-> E
 ```
 
-This library provides tools to parse the text above into a nested data structure (essentially a dictionary). This data structure can be used to create diagrams, network-related matrices, or nonlinear vector fields that describe the behavior of the chemical reaction networks. 
+If each of these reactions has mass-action kinetics, then they correspond to the following equations:
 
-This library is currently a work in progress.
+\[
+    \begin{align} 
+        \frac{d}{dt}[A] &= - r_1 & &=  - k_1 [A] [B]\\   
+        \frac{d}{dt}[B] &= - r_1 & &=  - k_1 [A] [B]\\ 
+        \frac{d}{dt}[C] &=   r_1 - r_2 & &=  k_1 [A] [B] - k_2 [C]\\ 
+        \frac{d}{dt}[D] &=   r_2 - r_3 & &=  k_2 [C] - k_3 [D] + k_4 [E]\\
+        \frac{d}{dt}[E] &=   r_3 & &=  k_3 [D] - k_4 [E]\\
+    \end{align}
+\]
+
+These equations can be translated into code for numerical integration. Or into a sparse matrix format for flux balance analysis. While this translation process is most mechanical, it must repeated every time the model's defining equations change, meaning the code has to be rewritten every time. Moreover, many biological models involve many parameters for the reaction kinetics. The exact kinetics are often unknown or approximate. Or reactions might be added or removed as the model changes. When the model is small as the above example, the translation step is easy enough to do by hand. However, as the number of variables grows, the translation step becomes more difficult, hindering changes. 
+
+Furthermore, many numerical algorithms benefit from access to the derivatives (joacbian of the vector field). Both numerical integration and parameter optimization (curve-fitting when the curve is the solution to the set of differential equations). However, the complexity of the models makes differentiation by hand error prone and time-consuming for large models. However, differentiation is also a mechanical process.  Lastly, the code implementation of a model might deviate from the mathematical definition; either due to improvements or due to errors in translation. However, code implementations sometimes obscur the mathematical structure of the model. 
+
+The goal of `reaction_net` is to solve these problems by allowing a model to be defined in a formal language, similar to a programming language, which is then translated into code for various tasks. 
+
+**WORK IN PROGRESS**
+
+## Reaction Net's Langauge. 
