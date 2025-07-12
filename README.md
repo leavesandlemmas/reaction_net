@@ -31,8 +31,11 @@ The goal of `reaction_net` is to solve these problems by allowing a model to be 
 Goals/Task:
 
 1. Develop the formal language 
-2. Write a parser which builds a parsed syntax tree
-3. Start with converting reaction equations to a matrix, rate-to-time-derivatives map, etc.
+2. Write a scanner which parses files into tokens
+3. Write a parseer which builds a syntax tree from the sequence of tokens.
+4. Transform or translate the syntax tree into other forms.
+5. Compile into code (.eg., c/c++, python, r)
+4. Start with converting reaction equations to a matrix, rate-to-time-derivatives map, etc.
 4. Parse mathematical expressions that define the rates. 
 
 
@@ -81,5 +84,6 @@ The issues are how to parse the identifiers correctly if they permit chracters l
 
 Solutions:
 
-1. Use `[` and `]` to indicate any name: e.g. `[2-amino-4-carbamoylbutanoic acid]`. All keywords and reserved symbols would be allow inside `[` and `]` and spaces would not be ignored. 
+1. Use `[` and `]` to i
+ndicate any name: e.g. `[2-amino-4-carbamoylbutanoic acid]`. All keywords and reserved symbols would be allow inside `[` and `]` and spaces would not be ignored. 
 
