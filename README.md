@@ -35,10 +35,13 @@ Goals/Task:
 3. Start with converting reaction equations to a matrix, rate-to-time-derivatives map, etc.
 4. Parse mathematical expressions that define the rates. 
 
+
 Useful links:
 
 * https://craftinginterpreters.com/
 * https://tiarkrompf.github.io/notes/?/just-write-the-parser/aside10
+
+
 
 ## Reaction Net's Language. 
 
@@ -69,9 +72,14 @@ X = a1 * X1 + a2 * X2 + ...  + an * Xn
 where `a1, a2, ...` are stoichiometric coefficients (either positive integers or positive real numbers) and `X1` are chemical species or metabolites. 
 
 
-In general, it would be nice if chemical formulas could be used: `NH4(+)` and `H2O` and `2-amino-4-carbamoylbutanoic acid`  
+In general, it would be nice if chemical formulas could be used: `NH4(+)`, `H2O`,  `1,1-difluoroethane` and `2-amino-4-carbamoylbutanoic acid`. 
 * What to allow for symbols `X` ? 
 * Is this valid `2-oxoglutarate`? 
-* Is this valid `NH4(+)` ?   
+* Is this valid `NH4(+)` ?  
+* How should `2 * (X + Y) -> Z` be interpreted? 
+The issues are how to parse the identifiers correctly if they permit chracters like `-`, `+`, `(`, and `)`. It would be nice to allow for substitutions: `X = 1,1-difluoroethane` in the file. 
 
-The issues are how to parse the identifiers correctly if they permit chracters like `-`, `+`, `(`, and `)`. 
+Solutions:
+
+1. Use `[` and `]` to indicate any name: e.g. `[2-amino-4-carbamoylbutanoic acid]`. All keywords and reserved symbols would be allow inside `[` and `]` and spaces would not be ignored. 
+
