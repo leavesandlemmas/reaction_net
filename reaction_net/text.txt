@@ -1,0 +1,7 @@
+A + B -> C + D
+D + E <- F + G
+C <-> G 
+2 * X + Y -> Z; Z<-W 
+
+NH4(+) + glutamate -> glutamine;
+glutamate + 2-oxoglutarate -> 2 * glutamate 

@@ -37,7 +37,41 @@ Goals/Task:
 
 Useful links:
 
-* https://craftinginterpreters.com/scanning.html
+* https://craftinginterpreters.com/
 * https://tiarkrompf.github.io/notes/?/just-write-the-parser/aside10
 
-## Reaction Net's Langauge. 
+## Reaction Net's Language. 
+
+Reaction net's language has three contexts: names, formulas, and rate-kinetics expressions.  The idea is that a reaction can have a name, formula showing its stoichiometry, and a mathematical expression showing the reaction rate:
+
+```
+reaction_name_1 : reaction_formula_1 : reaction_rate_1; 
+reaction_name_2 : reaction_formula_2 : reaction_rate_2; 
+```
+
+The reaction name and reaction rate expression are optional.
+
+### Reaction formulas
+
+A reaction formula has one of the following forms:
+
+```
+X -> Y
+X <- Y
+X <-> Y
+X = Y 
+```
+
+The reaction arrows indicate the direction of the reaction. `<->` is a reversible reaction and `=` indicates a reversible reaction. Here `X` and `Y` are a vector with only positive coefficients, or more properly a *commutative monoid*. To spell out what that means, in general, `X` and `Y` have the form:
+```
+X = a1 * X1 + a2 * X2 + ...  + an * Xn  
+```
+where `a1, a2, ...` are stoichiometric coefficients (either positive integers or positive real numbers) and `X1` are chemical species or metabolites. 
+
+
+In general, it would be nice if chemical formulas could be used: `NH4(+)` and `H2O` and `2-amino-4-carbamoylbutanoic acid`  
+* What to allow for symbols `X` ? 
+* Is this valid `2-oxoglutarate`? 
+* Is this valid `NH4(+)` ?   
+
+The issues are how to parse the identifiers correctly if they permit chracters like `-`, `+`, `(`, and `)`. 
