@@ -34,6 +34,7 @@ enum class TokenType
 
 class Token
 {
+
     TokenType _type;
     std::string _lexeme;
     int _line;
@@ -47,7 +48,12 @@ public:
 
     inline std::string to_string()
     {
-        return "Token=" + std::to_string(static_cast<int>(_type)) + "  " + _lexeme;
+        return "L" + std::to_string(_line) + " Token=" + std::to_string(static_cast<int>(_type)) + "  " + _lexeme;
+    }
+
+    inline bool is_type(TokenType t) const
+    {
+        return _type == t;
     }
 };
 
@@ -188,7 +194,8 @@ private:
         case '\t':
             break;
         case '\n':
-            add_token(TokenType::SEMICOLON, ";");
+            if (!_tokens.back().is_type(TokenType::SEMICOLON))
+                add_token(TokenType::SEMICOLON, ";");
             ++_line;
             break;
         default:
@@ -246,6 +253,9 @@ private:
         {
             advance();
         }
+
+        advance();
+        ++_line;
     }
 
     inline void advance_to_comment_end()
@@ -303,7 +313,7 @@ private:
 
     inline bool is_identifier_end(char c)
     {
-        return is_whitespace(c);
+        return !is_alphanumeric(c);
     }
 };
 

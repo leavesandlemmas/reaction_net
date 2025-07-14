@@ -2,7 +2,7 @@
 #include <fstream>
 #include <string>
 
-#include "include/rxn.h"
+#include "include/reaction_net.hpp"
 
 int main(int argc, char *argv[])
 {

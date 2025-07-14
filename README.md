@@ -87,3 +87,11 @@ Solutions:
 1. Use `[` and `]` to i
 ndicate any name: e.g. `[2-amino-4-carbamoylbutanoic acid]`. All keywords and reserved symbols would be allow inside `[` and `]` and spaces would not be ignored. 
 
+### Reaction Rate Expressions
+
+Mostly should be mathematical notation as in any programming language.
+
+### Extended Backus-Naur Form
+```
+
+```
