@@ -10,15 +10,14 @@ struct Expr {
     }
 };
 
-struct Input : public Expr<Input> {
+struct Symbol : public Expr<Symbol> {
     static constexpr bool is_leaf = true;
     double value; 
 
-    Input(double v) : value{v} {}
+    Symbol(double v) : value{v} {}
     
     double operator()() const { return value;}
 };
-
 
 template<typename L, typename R>
 struct Add : public Expr<Add<L, R>> {
@@ -51,9 +50,8 @@ struct Mul : public Expr<Mul<L, R>> {
     }
 };
 
-
-
 template<typename L, typename R>
 Mul<L, R> operator*(Expr<L> const & x, Expr<R> const& y){
     return Mul<L,R>(*static_cast<const L*>(&x), *static_cast<const R*>(&y));
 }
+

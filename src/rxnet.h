@@ -30,6 +30,7 @@ struct Reaction {
     std::vector<Edge> reactants;
     std::vector<Edge> products;
 
+    
 
 
 
