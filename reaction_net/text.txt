@@ -3,5 +3,10 @@ D + E <- F + G
 C <-> G 
 2 * X + Y -> Z; Z<-W 
 
+// this is a comment
 NH4(+) + glutamate -> glutamine;
 glutamate + 2-oxoglutarate -> 2 * glutamate 
+
+// white space characters
+\r\t
+/* this is a multiline comment */

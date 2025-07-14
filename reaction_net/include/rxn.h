@@ -13,7 +13,9 @@ enum class TokenType
     STAR,
     SEMICOLON,
     COLON,
-    EQUALS,
+    EQUAL,
+    GREATER,
+    LESS,
 
     // one or two characters
     MINUS,
@@ -49,6 +51,23 @@ public:
     }
 };
 
+struct Error
+{
+    size_t line;
+    std::string ex;
+    std::string msg;
+
+    template <typename T1, typename T2, typename T3>
+    Error(T1 l, T2 e, T3 m) : line{l}, ex{e}, msg{m}
+    {
+    }
+
+    std::string report()
+    {
+        return "Error Line " + std::to_string(line) + ". " + msg + "\n  " + ex;
+    }
+};
+
 template <typename StreamType>
 class Scanner
 {
@@ -75,15 +94,31 @@ public:
             Token(TokenType::ENDOFFILE, "", _line));
     }
 
-    void print_tokens()
+    template <typename StreamOut>
+    void print_tokens(StreamOut &out)
     {
         for (auto &s : _tokens)
-            std::cout << s.to_string() << '\n';
+            out << s.to_string() << '\n';
+    }
+
+    inline bool any_errors()
+    {
+        return errors.size() > 0;
+    }
+
+    template <typename StreamOut>
+    inline void print_errors(StreamOut &out)
+    {
+        for (auto &s : errors)
+        {
+            out << s.report() << '\n';
+        }
     }
 
 private:
     StreamType _source;
     std::vector<Token> _tokens;
+    std::vector<Error> errors;
     std::string current_lexeme;
     size_t _line = 1;
 
@@ -112,6 +147,9 @@ private:
         case ':':
             add_token(TokenType::COLON);
             break;
+        case '=':
+            add_token(TokenType::EQUAL);
+            break;
         case '-':
             add_token(match('>') ? TokenType::RIGHTARROW : TokenType::MINUS);
             break;
@@ -122,8 +160,11 @@ private:
             }
             else
             {
-                "error";
+                add_token(TokenType::LESS);
             }
+            break;
+        case '>':
+            add_token(TokenType::GREATER);
             break;
         case '/':
             if (match('/'))
@@ -153,6 +194,8 @@ private:
         default:
             if (is_alphanumeric(c))
                 identifier(c);
+            else
+                errors.push_back(Error(_line, current_lexeme, "Unrecognized character."));
         }
     }
 
@@ -218,7 +261,7 @@ private:
     {
         bool digit_only = is_digit(c);
 
-        while ((c = peek()) != ' ' && !at_end())
+        while (!(is_identifier_end(c = peek()) || at_end()))
         {
             if (digit_only)
             {
@@ -252,4 +295,18 @@ private:
     {
         return ('0' <= c) && (c <= '9');
     }
+
+    inline bool is_whitespace(char c)
+    {
+        return (c == ' ') || (c == '\n') || (c == '\t') || (c == '\r');
+    }
+
+    inline bool is_identifier_end(char c)
+    {
+        return is_whitespace(c);
+    }
+};
+
+class Parser
+{
 };
