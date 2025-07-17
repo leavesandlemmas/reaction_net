@@ -8,9 +8,9 @@ int main(int argc, char *argv[])
 {
     if (argc > 1)
     {
-        std::cout << "Reading first file.\n";
-
-        Scanner<std::ifstream> scanner(argv[1]);
+        std::cout << "Reading file.\n";
+        std::vector<Token> tokens;
+        Scanner<std::ifstream> scanner(tokens, argv[1]);
 
         scanner.scan_tokens();
         scanner.print_tokens(std::cout);

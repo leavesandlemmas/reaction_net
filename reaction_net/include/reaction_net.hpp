@@ -4,59 +4,7 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
-
-enum class TokenType
-{
-    // single characters
-    LEFTPAREN,
-    RIGHTPAREN,
-    PLUS,
-    STAR,
-    SEMICOLON,
-    COLON,
-    EQUAL,
-    GREATER,
-    LESS,
-
-    // one or two characters
-    MINUS,
-    SLASH,
-    RIGHTARROW,
-    LEFTARROW,
-    LEFTRIGHTARROW,
-    // literals
-    SYMBOL,
-    NUMBER,
-    // keywords
-
-    // end of file
-    ENDOFFILE
-};
-
-class Token
-{
-
-    TokenType _type;
-    std::string _lexeme;
-    int _line;
-
-public:
-    Token(
-        TokenType t,
-        std::string lexeme, int line) : _type{t},
-                                        _lexeme{lexeme},
-                                        _line{line} {}
-
-    inline std::string to_string()
-    {
-        return "L" + std::to_string(_line) + " Token=" + std::to_string(static_cast<int>(_type)) + "  " + _lexeme;
-    }
-
-    inline bool is_type(TokenType t) const
-    {
-        return _type == t;
-    }
-};
+#include "language/tokens.hpp"
 
 struct Error
 {
@@ -81,9 +29,9 @@ class Scanner
 
 public:
     template <typename... Args>
-    Scanner(Args &&...args) : _source(std::forward<Args>(args)...), _tokens{}
+    Scanner(std::vector<Token> &tokens, Args &&...args) : _tokens{tokens}, _source(std::forward<Args>(args)...)
     {
-        if (!_source.good())
+        if (!_source.is_open())
         {
             throw std::runtime_error("File failed to open...");
         }
@@ -123,8 +71,8 @@ public:
     }
 
 private:
+    std::vector<Token> &_tokens;
     StreamType _source;
-    std::vector<Token> _tokens;
     std::vector<Error> errors;
     std::string current_lexeme;
     size_t _line = 1;
@@ -163,7 +111,7 @@ private:
         case '<':
             if (match('-'))
             {
-                add_token(match('>') ? TokenType::LEFTRIGHTARROW : TokenType::RIGHTARROW);
+                add_token(match('>') ? TokenType::LEFTRIGHTARROW : TokenType::LEFTARROW);
             }
             else
             {
@@ -188,6 +136,12 @@ private:
                 add_token(TokenType::SLASH);
             }
             break;
+        case '"':
+            current_lexeme.pop_back();
+            while (peek() != '"' && !at_end())
+                current_lexeme.push_back(advance());
+            advance();
+            add_token(TokenType::SYMBOL);
         case ' ':
             break;
         case '\r':

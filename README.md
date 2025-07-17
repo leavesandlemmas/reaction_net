@@ -87,11 +87,29 @@ Solutions:
 1. Use `[` and `]` to i
 ndicate any name: e.g. `[2-amino-4-carbamoylbutanoic acid]`. All keywords and reserved symbols would be allow inside `[` and `]` and spaces would not be ignored. 
 
+#### Formal Grammar of Reaction Formulas
+
+Syntax rules for formal grammars, especially context free grammars, can be described as a string rewriting rules. Using [Extended Backus Naur Form] as notation to write the syntax rules for our reaction formulas. Quoted strings are terminal symbols while unquoted strings are non-terminal symbols. I use `->` to indicate a production (or rewriting rule). For conciseness, the `|` symbol indicates "one of" or "or". Basically, `X -> A | B` means the symbol `X` can be replaced with `A` or `B`. This is equivalent to multiple production rules `X -> A` and `X -> B`. Likewise `["*"]` indicates that the symbol `*` is optional.  
+
+Here's the basic syntax rules. 
+```
+reaction -> (complex yield complex) | reaction ";" reaction
+yield -> "->" | "<-" | "<->" | "="
+complex -> complex "+" complex
+complex ->  number ["*"] complex
+complex -> "(" complex ")"
+complex -> species
+number -> ? any integer ?
+species -> ? any alphanumeric identifier ? 
+```
+
+The first two give us all possible reaction equations, but does not allow chaining. I.e., `A -> B -> C` would be invalid. A reaction has two "complexes" (this is the word used in mathematical chemistry). The product/reactant complex is always an element of a free commutative monoid over some species symbols, where we write the monoid operation as `+`. That's a fancy way of saying that you can add any species symbol to any other as many times as you like, and the "addition" is commutative (so like regular addition). `X+Y` and `Y + X` are equivalent ways of writing the same thing.  We want to allow people to use integers to abbreviate `X + X + Y` into ` `2 X + Y`  or `2 * X + Y`
+
+We might want to make the complexes into elements of a free vector space so that we have arbitrary symbols for stoichiometric coefficients. That way, you could write `a * X + Y` and specify the stoichiometric coefficient later. But let's put a pin in that.
+
+
+
 ### Reaction Rate Expressions
 
 Mostly should be mathematical notation as in any programming language.
 
-### Extended Backus-Naur Form
-```
-
-```
