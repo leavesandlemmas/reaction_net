@@ -95,10 +95,10 @@ Here's the basic syntax rules.
 ```
 reaction -> (complex yield complex) | reaction ";" reaction
 yield -> "->" | "<-" | "<->" | "="
-complex -> complex "+" complex
-complex ->  number ["*"] complex
-complex -> "(" complex ")"
-complex -> species
+complex -> complex_factor (( "+") complex_factor )*
+complex_factor ->  number (("*") unary)
+unary -> "(" complex ")"
+unary -> species
 number -> ? any integer ?
 species -> ? any alphanumeric identifier ? 
 ```
