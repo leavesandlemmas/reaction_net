@@ -96,8 +96,9 @@ Here's the basic syntax rules.
 EOF -> reacton ";" EOF
 reaction -> (complex yield complex) 
 yield -> "->" | "<-" | "<->" | "=" 
-complex -> complex "+" complex
-complex ->  number ["*"] complex
+complex -> complex "+" complexTerm
+complex' -> "+" complexTerm 
+complexTerm ->  number ["*"] complexTerm
 complex -> "(" complex ")"
 complex -> species
 number -> ? any integer ? (* these have a token type*)
