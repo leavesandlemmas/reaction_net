@@ -27,7 +27,12 @@ enum class TokenType
     // keywords
 
     // end of file
-    ENDOFFILE
+    ENDOFFILE,
+
+    // non terminal symbols
+    reaction,
+    complex,
+    yield
 };
 
 class Token

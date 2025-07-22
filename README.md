@@ -93,17 +93,19 @@ Syntax rules for formal grammars, especially context free grammars, can be descr
 
 Here's the basic syntax rules. 
 ```
-reaction -> (complex yield complex) | reaction ";" reaction
-yield -> "->" | "<-" | "<->" | "="
+EOF -> reacton ";" EOF
+reaction -> (complex yield complex) 
+yield -> "->" | "<-" | "<->" | "=" 
 complex -> complex "+" complex
 complex ->  number ["*"] complex
 complex -> "(" complex ")"
 complex -> species
-number -> ? any integer ?
+number -> ? any integer ? (* these have a token type*)
 species -> ? any alphanumeric identifier ? 
+EOF -> ? end-of-file token ?
 ```
 
-The first two give us all possible reaction equations, but does not allow chaining. I.e., `A -> B -> C` would be invalid. A reaction has two "complexes" (this is the word used in mathematical chemistry). The product/reactant complex is always an element of a free commutative monoid over some species symbols, where we write the monoid operation as `+`. That's a fancy way of saying that you can add any species symbol to any other as many times as you like, and the "addition" is commutative (so like regular addition). `X+Y` and `Y + X` are equivalent ways of writing the same thing.  We want to allow people to use integers to abbreviate `X + X + Y` into ` `2 X + Y`  or `2 * X + Y`
+The first three give us all possible reaction equations as a list, but does not allow chaining. I.e., `A -> B -> C` would be invalid. A reaction has two "complexes" (this is the word used in mathematical chemistry). The product/reactant complex is always an element of a free commutative monoid over some species symbols, where we write the monoid operation as `+`. That's a fancy way of saying that you can add any species symbol to any other as many times as you like, and the "addition" is commutative (so like regular addition). `X+Y` and `Y + X` are equivalent ways of writing the same thing.  We want to allow people to use integers to abbreviate `X + X + Y` into ` `2 X + Y`  or `2 * X + Y`
 
 We might want to make the complexes into elements of a free vector space so that we have arbitrary symbols for stoichiometric coefficients. That way, you could write `a * X + Y` and specify the stoichiometric coefficient later. But let's put a pin in that.
 
