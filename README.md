@@ -1,5 +1,7 @@
 # reaction_net
 
+**WORK IN PROGRESS**
+
 `reaction_net` is a parser and compiler designed for mathematical models of chemical reaction networks found in biology and chemistry. For example, consider the following reactions:
 
 ```
@@ -32,17 +34,11 @@ Goals/Task:
 
 1. Develop the formal language 
 2. Write a scanner which parses files into tokens
-3. Write a parseer which builds a syntax tree from the sequence of tokens.
+3. Write a parser which builds a syntax tree from the sequence of tokens.
 4. Transform or translate the syntax tree into other forms.
-5. Compile into code (.eg., c/c++, python, r)
+5. Compile into code (e.g., c/c++, python, r)
 4. Start with converting reaction equations to a matrix, rate-to-time-derivatives map, etc.
 4. Parse mathematical expressions that define the rates. 
-
-
-Useful links:
-
-* https://craftinginterpreters.com/
-* https://tiarkrompf.github.io/notes/?/just-write-the-parser/aside10
 
 
 
@@ -84,8 +80,8 @@ The issues are how to parse the identifiers correctly if they permit chracters l
 
 Solutions:
 
-1. Use `[` and `]` to i
-ndicate any name: e.g. `[2-amino-4-carbamoylbutanoic acid]`. All keywords and reserved symbols would be allow inside `[` and `]` and spaces would not be ignored. 
+1. Use `[` and `]` to indicate any name: e.g. `[2-amino-4-carbamoylbutanoic acid]`. All keywords and reserved symbols would be allow inside `[` and `]` and spaces would not be ignored. 
+2. Use `"` to indicate any identifier.
 
 #### Formal Grammar of Reaction Formulas
 
@@ -93,13 +89,12 @@ Syntax rules for formal grammars, especially context free grammars, can be descr
 
 Here's the basic syntax rules. 
 ```
-EOF -> reacton ";" EOF
-reaction -> (complex yield complex) 
+EOF -> reaction ";" EOF
+reaction -> complex yield complex 
 yield -> "->" | "<-" | "<->" | "=" 
-complex -> complex "+" complexTerm
-complex' -> "+" complexTerm 
-complexTerm ->  number ["*"] complexTerm
 complex -> "(" complex ")"
+complex -> number ["*"] complex
+complex -> species "+" complex
 complex -> species
 number -> ? any integer ? (* these have a token type*)
 species -> ? any alphanumeric identifier ? 
