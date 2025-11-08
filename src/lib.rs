@@ -2,6 +2,8 @@ use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 
+mod args;
+
 pub struct Config {
     callname: String,
     files: Vec<PathBuf>,
