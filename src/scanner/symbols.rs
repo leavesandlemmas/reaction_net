@@ -1,6 +1,6 @@
 // symbols
-#[derive(Debug)]
-enum Symbol {
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Symbol {
     LeftParen,
     RightParen,
     LeftBrace,
@@ -22,8 +22,8 @@ enum Symbol {
     Tick,
     Quote,
     Comma,
-    Species(String),
-    Number(u32),
+    Identifier(String),
+    Number(usize),
 }
 
-
+pub type Tokens = Vec<Symbol>;

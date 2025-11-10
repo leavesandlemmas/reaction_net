@@ -1,236 +1,195 @@
+use std::fmt;
+
 mod symbols;
 
-pub struct Scanner {
-    cursor: usize,
-    characters: Vec<char>,
+use std::error::Error;
+use std::iter::Peekable;
+use symbols::Symbol;
+use symbols::Tokens;
+
+#[derive(Debug)]
+pub struct LexError {
+    message: String,
+    line: usize,
 }
 
-impl Scanner {
-    pub fn new(string: &str) -> Self {
-        Self {
-            cursor: 0,
-            characters: string.chars().collect(),
-        }
+impl LexError {
+    pub fn new(message: String, line: usize) -> Self {
+        LexError { message, line }
     }
+}
 
-    pub fn cursor(&self) -> usize {
-        self.cursor
+impl fmt::Display for LexError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Scanner Error on Line {}: {}", self.line, self.message)
     }
+}
 
-    // returns the next character without advancing
-    pub fn peek(&self) -> Option<&char> {
-        self.characters.get(self.cursor)
-    }
+impl Error for LexError {}
 
-    pub fn is_done(&self) -> bool {
-        self.cursor == self.characters.len()
-    }
-    // advance to next character
-    pub fn pop(&mut self) -> Option<&char> {
-        match self.characters.get(self.cursor) {
-            Some(character) => {
-                self.cursor += 1;
-                Some(character)
+pub fn lexify(characters: &str) -> Result<Tokens, LexError> {
+    let mut scanner = Scanner::new(characters.chars());
+    let mut tokens: Tokens = Vec::new();
+
+    while let Some(c) = scanner.pop() {
+        // remove whitespace
+        if c.is_whitespace() {
+            if c == '\n' {
+                scanner.line += 1;
+                tokens.push(Symbol::SemiColon) // semicolon inserted at line break
             }
-            None => None,
+            continue;
         }
-    }
 
-    pub fn take(&mut self, target: &char) -> bool {
-        match self.characters.get(self.cursor) {
-            Some(character) => {
-                if target == character {
-                    self.cursor += 1;
-                    true
+        match c {
+            '(' => tokens.push(Symbol::LeftParen),
+            ')' => tokens.push(Symbol::RightParen),
+            '{' => tokens.push(Symbol::LeftBrace),
+            '}' => tokens.push(Symbol::RightBrace),
+            '[' => tokens.push(Symbol::LeftBracket),
+            ']' => tokens.push(Symbol::RightBracket),
+            '+' => tokens.push(Symbol::Plus),
+            '*' => tokens.push(Symbol::Star),
+            ';' => tokens.push(Symbol::SemiColon),
+            ':' => tokens.push(Symbol::Colon),
+            '=' => tokens.push(Symbol::Equal),
+            '\'' => tokens.push(Symbol::Tick),
+            ',' => tokens.push(Symbol::Comma),
+            '/' => scanner.comment_or_slash(&mut tokens),
+            '-' => scanner.rightarrow_or_minus(&mut tokens),
+            '>' => tokens.push(Symbol::Greater),
+            '<' => scanner.leftarrow_or_less(&mut tokens),
+            '\"' => scanner.quoted_identifier(&mut tokens),
+            _ => {
+                if c.is_alphanumeric() {
+                    scanner.identifier_or_number(c, &mut tokens)
                 } else {
-                    false
-                }
-            }
-            None => false,
-        }
-    }
-
-    pub fn transform<T>(&mut self, cb: impl FnOnce(&char) -> Option<T>) -> Option<T> {
-        match self.characters.get(self.cursor) {
-            Some(input) => match cb(input) {
-                Some(output) => {
-                    self.cursor += 1;
-                    Some(output)
-                }
-                None => None,
-            },
-            None => None,
-        }
-    }
-
-    pub fn scan<T>(&mut self, cb: impl Fn(&str) -> Option<Action<T>>) -> Result<Option<T>, Error> {
-        let mut sequence = String::new();
-        let mut require = false;
-        let mut request = None;
-
-        loop {
-            match self.characters.get(self.cursor) {
-                Some(target) => {
-                    sequence.push(*target);
-
-                    match cb(&seqeuence) {
-                        Some(Action::Return(result)) => {
-                            self.cursor += 1;
-                            break Ok(Some(result));
-                        }
-                        Some(Action::Request(result)) => {
-                            self.cursor += 1;
-                            require = false;
-                            request = Some(result);
-                        }
-                        Some(Action::Require) => {
-                            self.cursor += 1;
-                            require = true;
-                        }
-                        None => {
-                            if require {
-                                break Err(Error::Character(self.cursor));
-                            } else {
-                                break Ok(request);
-                            }
-                        }
-                    }
-                }
-                None => {
-                    if require {
-                        break Err(Error::EndOfLine);
-                    } else {
-                        Ok(request)
-                    }
+                    return Err(LexError::new(
+                        format!("Character not recognized {}.", c),
+                        scanner.line,
+                    ));
                 }
             }
         }
     }
+
+    Ok(tokens)
 }
 
-
-pub enum Action<T> {
-    // If iteration is returns none, return T without advancing the cursor
-    Request(T),
-    //  If the next iteration returns None, return None without
-    Require,
-    /// Immediately advance the cursor and return T
-    Return(T)
+pub struct Scanner<T: Iterator<Item = char>> {
+    characters: Peekable<T>,
+    line: usize,
 }
 
-pub fn tokenize(string : &str) -> bool {
-    let mut scanner = Scanner::new(string);
-    
-    loop {
-    
-    
+impl<T: Iterator<Item = char>> Scanner<T> {
+    fn new(characters: T) -> Self {
+        Self {
+            characters: characters.peekable(),
+            line: 1,
+        }
+    }
 
-    }    
-    
-    scanner.cursor() > 0 && scanner.is_done()
-}
+    fn increment_line_num(&mut self) {
+        self.line += 1;
+    }
 
-struct Tokens {
-    tokens: Vec<Symbol>,
-}
+    //returns the next character without advancing
+    fn peek(&mut self) -> Option<&char> {
+        self.characters.peek()
+    }
 
-impl Tokens {
-    fn parse(characters: impl Iterator<Item = char>) -> Result<Tokens, String> {
-        let mut tokens: Vec<Symbol> = Vec::new();
-        let mut iterator = characters.peekable();
-        let mut line: u64 = 1;
-        while let Some(c) = iterator.next() {
-            if c.is_whitespace() {
-                if c == '\n' {
-                    line += 1
+    //advance to next character
+    fn pop(&mut self) -> Option<char> {
+        self.characters.next()
+    }
+
+    fn take_next_if(&mut self, func: impl FnOnce(&char) -> bool) -> Option<char> {
+        self.characters.next_if(func)
+    }
+
+    fn match_next(&mut self, func: impl FnOnce(&char) -> bool) -> bool {
+        self.characters.next_if(func).is_some()
+    }
+
+    fn comment(&mut self) {
+        while let Some(c) = self.pop() {
+            if c == '\n' {
+                self.line += 1;
+                break;
+            }
+        }
+    }
+
+    fn multline_comment(&mut self) {
+        while let Some(c) = self.pop() {
+            if c == '\n' {
+                self.line += 1;
+            }
+
+            if c == '*' {
+                if self.match_next(|c| *c == '/') {
+                    break;
                 }
+            }
+        }
+    }
+
+    fn comment_or_slash(&mut self, tokens: &mut Tokens) {
+        if self.match_next(|c| *c == '/') {
+            self.comment()
+        } else if self.match_next(|c| *c == '*') {
+            self.multline_comment()
+        } else {
+            tokens.push(Symbol::Slash);
+        }
+    }
+    fn rightarrow_or_minus(&mut self, tokens: &mut Tokens) {
+        // arrow ?
+        if self.match_next(|c| *c == '>') {
+            tokens.push(Symbol::RightArrow);
+        } else {
+            tokens.push(Symbol::Minus);
+        }
+    }
+
+    fn leftarrow_or_less(&mut self, tokens: &mut Tokens) {
+        //arrow ?
+        if self.match_next(|c| *c == '-') {
+            // double arrow?
+            if self.match_next(|c| *c == '>') {
+                tokens.push(Symbol::LeftRightArrow);
             } else {
-                match c {
-                    '(' => tokens.push(Symbol::LeftParen),
-                    ')' => tokens.push(Symbol::RightParen),
-                    '{' => tokens.push(Symbol::LeftBrace),
-                    '}' => tokens.push(Symbol::RightBrace),
-                    '[' => tokens.push(Symbol::LeftBracket),
-                    ']' => tokens.push(Symbol::RightBracket),
-                    '+' => tokens.push(Symbol::Plus),
-                    '*' => tokens.push(Symbol::Star),
-                    ';' => tokens.push(Symbol::SemiColon),
-                    ':' => tokens.push(Symbol::Colon),
-                    '=' => tokens.push(Symbol::Equal),
-                    '"' => tokens.push(Symbol::Quote),
-                    '\'' => tokens.push(Symbol::Tick),
-                    ',' => tokens.push(Symbol::Comma),     
-                    '/' => {
-                        if let Some('/') = iterator.peek() {
-                            iterator.next();
-                            while let Some(c) = iterator.next() {
-                                if c == '\n' {
-                                    line += 1;
-                                    break ;
-                                }
-                            }
-                        } else if let Some('*') = iterator.peek(){
-                            iterator.next();
-                            while let Some(c) = iterator.next() {
-                                if c == '*' {
-                                    if  let Some('/') = iterator.peek() {break;}
-
-                                }
-                            }
-                        } else {tokens.push(Symbol::Slash);}
-                    }               
-                    '-' => {
-                        if let Some('>') = iterator.peek() {
-                            iterator.next();
-                            tokens.push(Symbol::RightArrow);
-                        } else {
-                            tokens.push(Symbol::Minus);
-                        }
-                    }
-                    '>' => tokens.push(Symbol::Greater),
-                    '<' => {
-                        if let Some('-') = iterator.peek() {
-                            iterator.next();
-                            if let Some('>') = iterator.peek() {
-                                tokens.push(Symbol::LeftRightArrow);
-                            } else {
-                                tokens.push(Symbol::LeftArrow);
-                            }
-                        } else {
-                            tokens.push(Symbol::Less);
-                        }
-                    }
-                    _ => {
-                        if c.is_alphanumeric() {
-                            let mut lexeme = String::new();
-                            lexeme.push(c);
-                            let mut number = c.is_ascii_digit();
-                            while let Some(c) = iterator.next() {
-                                if c.is_alphanumeric() {
-                                    number &= c.is_ascii_digit();
-                                    lexeme.push(c);
-                                } else {
-                                    break;
-                                }
-                            }
-                            if number {let n :u32= lexeme.parse().expect("Couldn't parse integer."); tokens.push(Symbol::Number(n));} else {
-tokens.push(Symbol::Species(lexeme));
-                            }
-                            
-                        } else {
-                            return Err(format!("Line {line}: Character not recognized {c}."));
-                        }
-                    }
-                };
+                tokens.push(Symbol::LeftArrow);
             }
+        } else {
+            tokens.push(Symbol::Less);
         }
-        Ok(Tokens { tokens })
     }
 
-    fn print(&self) {
-        for token in &self.tokens {
-            println!("{token:?}");
+    fn quoted_identifier(&mut self, tokens: &mut Tokens) {
+        let mut lexeme = String::new();
+        while let Some(c) = self.pop() {
+            if c == '"' {
+                break;
+            }
+            lexeme.push(c);
+        }
+        tokens.push(Symbol::Identifier(lexeme));
+    }
+
+    fn identifier_or_number(&mut self, c: char, tokens: &mut Tokens) {
+        let mut lexeme = String::new();
+        lexeme.push(c);
+        let mut number = c.is_ascii_digit();
+        while let Some(c) = self.take_next_if(|c| c.is_alphanumeric()) {
+            number &= c.is_ascii_digit();
+            lexeme.push(c);
+        }
+        if number {
+            let n: usize = lexeme.parse().expect("Couldn't parse integer.");
+            tokens.push(Symbol::Number(n));
+        } else {
+            tokens.push(Symbol::Identifier(lexeme));
         }
     }
 }
-

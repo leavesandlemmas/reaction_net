@@ -2,8 +2,8 @@ use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 
-
 mod scanner;
+use scanner::lexify;
 
 pub struct Config {
     callname: String,
@@ -57,9 +57,12 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
     for file in config.files {
         let contents = fs::read_to_string(file)?;
-        let tokens = Tokens::parse(contents.chars())?;
+        println!("{contents}");
 
-        tokens.print();
+        let tokens = lexify(&contents)?;
+        for token in tokens {
+            println!("{token:?}");
+        }
     }
 
     Ok(())
@@ -78,4 +81,3 @@ static USAGE: &str = "reaction_net [options] <filename.crn>
 Options:
     --help                    Print usage. 
      ";
-
