@@ -82,6 +82,19 @@ Solutions:
 
 1. Use `[` and `]` to indicate any name: e.g. `[2-amino-4-carbamoylbutanoic acid]`. All keywords and reserved symbols would be allow inside `[` and `]` and spaces would not be ignored. 
 2. Use `"` to indicate any identifier.
+3. `let` block before reaction declarations.
+4. `where` block after reaction declarations
+```
+let X = "1,1-difluoroethane" 
+    Y = "2-amino-4-carbamoylbutanoic acid"
+decay reaction : X -> Y : r
+    where r = k1 * X
+
+A + C1 -> B + C2
+C2 -> C3 -> C1 
+assume mass-action
+
+```
 
 #### Formal Grammar of Reaction Formulas
 
@@ -89,13 +102,19 @@ Syntax rules for formal grammars, especially context free grammars, can be descr
 
 Here's the basic syntax rules. 
 ```ebnf
-<eof> ::= <reaction> | <reaction> ";" <eof> | <reaction> "\n" <eof>
+<eof> ::= <reactionstmt> | <reactionstmt> ";" <eof> | <reactionstmt> "\n" <eof>
+<reactionstmt> ::= (<symbol> ":")? <reaction> (":" <kinetics>)?  | <reactionpath>
+<reactionpath> ::=  <complex> <yield> <reactionpath> | <reaction>
 <reaction> ::= <complex> <yield> <complex>
 <yield> ::= "->" | "<-" | "<->" | "="
 <complex> ::=  <monomial> | <monomial> "+" <complex>
 <monomial> ::= <symbol> | <number> "*"? <symbol>
 <symbol> ::= [A-Z]
-<number> ::= [1-9] [0-9]*
+<number> ::= [1-9]
+<kinetics> ::= "mass-action" | "michaelis-menten" | <expr>
+<expr> ::= <term> "+" <expr> | <term> "-" <expr> | <term>
+<term> ::= <factor> "*" <term> | <factor> "/" <term> | <factor>
+<factor> ::= <symbol> | <number> | "(" <expr> ")"
 ```
 
 The first three give us all possible reaction equations as a list, but does not allow chaining. I.e., `A -> B -> C` would be invalid. A reaction has two "complexes" (this is the word used in mathematical chemistry). The product/reactant complex is always an element of a free commutative monoid over some species symbols, where we write the monoid operation as `+`. That's a fancy way of saying that you can add any species symbol to any other as many times as you like, and the "addition" is commutative (so like regular addition). `X+Y` and `Y + X` are equivalent ways of writing the same thing.  We want to allow people to use integers to abbreviate `X + X + Y` into ` `2 X + Y`  or `2 * X + Y`
