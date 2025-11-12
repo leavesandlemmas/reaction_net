@@ -35,10 +35,10 @@ Goals/Task:
 1. Develop the formal language 
 2. Write a scanner which parses files into tokens
 3. Write a parser which builds a syntax tree from the sequence of tokens.
-4. Transform or translate the syntax tree into other forms.
-5. Compile into code (e.g., c/c++, python, r)
-4. Start with converting reaction equations to a matrix, rate-to-time-derivatives map, etc.
-4. Parse mathematical expressions that define the rates. 
+4. Develop a data structure for the CRN and kinetics info. 
+5. Methods to evaluate the data structure.
+6. Compile into code (e.g., c/c++, python, r)
+
 
 
 
