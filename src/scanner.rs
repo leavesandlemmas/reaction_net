@@ -1,12 +1,13 @@
+// standard imports
 use std::fmt;
-
-mod symbols;
-
 use std::error::Error;
 use std::iter::Peekable;
+// declare symbols 
+mod symbols;
 use symbols::Symbol;
 use symbols::Tokens;
 
+// Errors for lexical analysis
 #[derive(Debug)]
 pub struct LexError {
     message: String,
@@ -27,6 +28,7 @@ impl fmt::Display for LexError {
 
 impl Error for LexError {}
 
+// preform lexical analysis; return list of tokens or LexErrpr
 pub fn lexify(characters: &str) -> Result<Tokens, LexError> {
     let mut scanner = Scanner::new(characters.chars());
     let mut tokens: Tokens = Vec::new();
@@ -38,6 +40,11 @@ pub fn lexify(characters: &str) -> Result<Tokens, LexError> {
                 scanner.line += 1;
                 tokens.push(Symbol::SemiColon) // semicolon inserted at line break
             }
+            continue;
+        }
+
+        if c.is_alphanumeric() {
+            scanner.identifier_or_number(c, &mut tokens);
             continue;
         }
 
@@ -61,21 +68,18 @@ pub fn lexify(characters: &str) -> Result<Tokens, LexError> {
             '<' => scanner.leftarrow_or_less(&mut tokens),
             '\"' => scanner.quoted_identifier(&mut tokens),
             _ => {
-                if c.is_alphanumeric() {
-                    scanner.identifier_or_number(c, &mut tokens)
-                } else {
-                    return Err(LexError::new(
-                        format!("Character not recognized {}.", c),
-                        scanner.line,
-                    ));
-                }
+                return Err(LexError::new(
+                    format!("Character not recognized {}.", c),
+                    scanner.line,
+                ));
             }
-        }
-    }
+        } // match-arm
+    } // while-loop
 
     Ok(tokens)
 }
 
+// Scanner class contains lexical analysis logic
 pub struct Scanner<T: Iterator<Item = char>> {
     characters: Peekable<T>,
     line: usize,
