@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fmt;
 
 // memory efficient to copy
 type StoichCoef = u32;
@@ -168,28 +167,4 @@ impl RxNet {
         Self {registry, reactions}
     }
 
-    // pub fn translate(&self) -> String {
-    //     let mut out = String::new();
-    //     out.push_str("#ifndef RXNET_TRANSLATION_H\n");
-    //     out.push_str("#define RXNET_TRANSLATION_H\n\n");
-    //     out.push_str("#include <string>\n");
-    //     out.push_str("#include <vector>\n\n");
-    //     out.push_str("const std::vector<std::string> metabolites = {");
-    //     let names = match self.registry.names.iter()
-    //         .reduce(|a,b| format!(" {a}, \"{b}\"") ) {
-    //             Some(names) => names,
-    //             None => String::new(),
-    //         }
-    //     out.push_str(&names);
-    //     out.push_str("}\n");
-    //     out
-    // }
-
 }
-
-
-// impl fmt::Display for RxNet {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        
-//     }
-// }
