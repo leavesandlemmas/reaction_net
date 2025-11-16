@@ -6,16 +6,19 @@ use std::iter::Peekable;
 mod symbols;
 use symbols::Symbol;
 use symbols::Tokens;
+use symbols::StoichCoef;
+
+type LineNum = u32;
 
 // Errors for lexical analysis
 #[derive(Debug)]
 pub struct LexError {
     message: String,
-    line: usize,
+    line: LineNum,
 }
 
 impl LexError {
-    pub fn new(message: String, line: usize) -> Self {
+    pub fn new(message: String, line: LineNum) -> Self {
         LexError { message, line }
     }
 }
@@ -37,7 +40,7 @@ pub fn lexify(characters: &str) -> Result<Tokens, LexError> {
         // remove whitespace
         if c.is_whitespace() {
             if c == '\n' {
-                scanner.line += 1;
+                scanner.increment_line_num();
                 tokens.push(Symbol::SemiColon) // semicolon inserted at line break
             }
             continue;
@@ -80,9 +83,9 @@ pub fn lexify(characters: &str) -> Result<Tokens, LexError> {
 }
 
 // Scanner class contains lexical analysis logic
-pub struct Scanner<T: Iterator<Item = char>> {
+struct Scanner<T: Iterator<Item = char>> {
     characters: Peekable<T>,
-    line: usize,
+    line: LineNum,
 }
 
 impl<T: Iterator<Item = char>> Scanner<T> {
@@ -95,11 +98,6 @@ impl<T: Iterator<Item = char>> Scanner<T> {
 
     fn increment_line_num(&mut self) {
         self.line += 1;
-    }
-
-    //returns the next character without advancing
-    fn peek(&mut self) -> Option<&char> {
-        self.characters.peek()
     }
 
     //advance to next character
@@ -118,7 +116,7 @@ impl<T: Iterator<Item = char>> Scanner<T> {
     fn comment(&mut self) {
         while let Some(c) = self.pop() {
             if c == '\n' {
-                self.line += 1;
+                self.increment_line_num();
                 break;
             }
         }
@@ -127,7 +125,7 @@ impl<T: Iterator<Item = char>> Scanner<T> {
     fn multline_comment(&mut self) {
         while let Some(c) = self.pop() {
             if c == '\n' {
-                self.line += 1;
+                self.increment_line_num();
             }
 
             if c == '*' {
@@ -190,7 +188,8 @@ impl<T: Iterator<Item = char>> Scanner<T> {
             lexeme.push(c);
         }
         if number {
-            let n: usize = lexeme.parse().expect("Couldn't parse integer.");
+            let n: StoichCoef = lexeme.parse().expect(
+                "Couldn't parse stoichiometric coefficient as integer.");
             tokens.push(Symbol::Number(n));
         } else {
             tokens.push(Symbol::Identifier(lexeme));
