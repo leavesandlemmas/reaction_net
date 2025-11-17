@@ -47,7 +47,8 @@ pub fn lexify(characters: &str) -> Result<Tokens, LexError> {
         }
 
         if c.is_alphanumeric() {
-            scanner.identifier_or_number(c, &mut tokens);
+            let s = scanner.identifier_or_number(c);
+            tokens.push(s);
             continue;
         }
 
@@ -65,11 +66,11 @@ pub fn lexify(characters: &str) -> Result<Tokens, LexError> {
             '=' => tokens.push(Symbol::Equal),
             '\'' => tokens.push(Symbol::Tick),
             ',' => tokens.push(Symbol::Comma),
-            '/' => scanner.comment_or_slash(&mut tokens),
-            '-' => scanner.rightarrow_or_minus(&mut tokens),
+            '-' => tokens.push(scanner.rightarrow_or_minus()),
             '>' => tokens.push(Symbol::Greater),
-            '<' => scanner.leftarrow_or_less(&mut tokens),
-            '\"' => scanner.quoted_identifier(&mut tokens),
+            '<' => tokens.push(scanner.leftarrow_or_less()),
+            '/' => if let Some(s) = scanner.comment_or_slash() { tokens.push(s); },
+            '\"' => tokens.push(scanner.quoted_identifier()),
             _ => {
                 return Err(LexError::new(
                     format!("Character not recognized {}.", c),
@@ -83,13 +84,20 @@ pub fn lexify(characters: &str) -> Result<Tokens, LexError> {
 }
 
 // Scanner class contains lexical analysis logic
-struct Scanner<T: Iterator<Item = char>> {
+pub struct Scanner<T: Iterator<Item = char>> {
     characters: Peekable<T>,
     line: LineNum,
 }
 
 impl<T: Iterator<Item = char>> Scanner<T> {
     fn new(characters: T) -> Self {
+        Self {
+            characters: characters.peekable(),
+            line: 1,
+        }
+    }
+
+    pub fn scan(characters: T) -> Self {
         Self {
             characters: characters.peekable(),
             line: 1,
@@ -119,7 +127,7 @@ impl<T: Iterator<Item = char>> Scanner<T> {
                 self.increment_line_num();
                 break;
             }
-        }
+        } 
     }
 
     fn multline_comment(&mut self) {
@@ -136,50 +144,52 @@ impl<T: Iterator<Item = char>> Scanner<T> {
         }
     }
 
-    fn comment_or_slash(&mut self, tokens: &mut Tokens) {
+    fn comment_or_slash(&mut self) -> Option<Symbol> {
         if self.match_next(|c| *c == '/') {
-            self.comment()
+            self.comment();
+            None 
         } else if self.match_next(|c| *c == '*') {
-            self.multline_comment()
+            self.multline_comment();
+            None 
         } else {
-            tokens.push(Symbol::Slash);
+            Some(Symbol::Slash)
         }
     }
-    fn rightarrow_or_minus(&mut self, tokens: &mut Tokens) {
+    fn rightarrow_or_minus(&mut self) -> Symbol {
         // arrow ?
         if self.match_next(|c| *c == '>') {
-            tokens.push(Symbol::RightArrow);
+            Symbol::RightArrow
         } else {
-            tokens.push(Symbol::Minus);
+            Symbol::Minus
         }
     }
 
-    fn leftarrow_or_less(&mut self, tokens: &mut Tokens) {
+    fn leftarrow_or_less(&mut self) -> Symbol {
         //arrow ?
         if self.match_next(|c| *c == '-') {
             // double arrow?
             if self.match_next(|c| *c == '>') {
-                tokens.push(Symbol::LeftRightArrow);
+                Symbol::LeftRightArrow
             } else {
-                tokens.push(Symbol::LeftArrow);
+                Symbol::LeftArrow
             }
         } else {
-            tokens.push(Symbol::Less);
+            Symbol::Less
         }
     }
 
-    fn quoted_identifier(&mut self, tokens: &mut Tokens) {
+    fn quoted_identifier(&mut self)  -> Symbol {
         let mut lexeme = String::new();
         while let Some(c) = self.pop() {
-            if c == '"' {
+            if c == '\"' {
                 break;
             }
             lexeme.push(c);
         }
-        tokens.push(Symbol::Identifier(lexeme));
+        Symbol::Identifier(lexeme)
     }
 
-    fn identifier_or_number(&mut self, c: char, tokens: &mut Tokens) {
+    fn identifier_or_number(&mut self, c: char) -> Symbol {
         let mut lexeme = String::new();
         lexeme.push(c);
         let mut number = c.is_ascii_digit();
@@ -190,9 +200,76 @@ impl<T: Iterator<Item = char>> Scanner<T> {
         if number {
             let n: StoichCoef = lexeme.parse().expect(
                 "Couldn't parse stoichiometric coefficient as integer.");
-            tokens.push(Symbol::Number(n));
+            Symbol::Number(n)
         } else {
-            tokens.push(Symbol::Identifier(lexeme));
+            Symbol::Identifier(lexeme)
         }
     }
+}
+
+
+impl<T : Iterator<Item = char>> Iterator for Scanner<T> {
+
+    type Item = Result<Symbol, LexError>;
+
+    // preform lexical analysis; return list of tokens or LexError
+    fn next(&mut self) -> Option<Self::Item> {
+
+
+    while let Some(c) = self.pop() {
+        // remove whitespace
+        if c.is_whitespace() {
+            if c == '\n' {
+                self.increment_line_num();
+                let s = Ok(Symbol::SemiColon);
+                return Some(s) // semicolon inserted at line break
+            }
+            continue;
+        }
+        
+        // remove comments
+        if c == '/' {
+            let maybe_slash = self.comment_or_slash();
+            if maybe_slash.is_some() {
+                let s = Ok(maybe_slash?);
+                 return Some(s); 
+            }
+            continue; 
+        }
+
+        if c.is_alphanumeric() {
+            let s = self.identifier_or_number(c);
+            return Some(Ok(s))
+        }
+
+        let result = match c {
+            '(' => Ok(Symbol::LeftParen),
+            ')' => Ok(Symbol::RightParen),
+            '{' => Ok(Symbol::LeftBrace),
+            '}' => Ok(Symbol::RightBrace),
+            '[' => Ok(Symbol::LeftBracket),
+            ']' => Ok(Symbol::RightBracket),
+            '+' => Ok(Symbol::Plus),
+            '*' => Ok(Symbol::Star),
+            ';' => Ok(Symbol::SemiColon),
+            ':' => Ok(Symbol::Colon),
+            '=' => Ok(Symbol::Equal),
+            '\'' => Ok(Symbol::Tick),
+            ',' => Ok(Symbol::Comma),
+            '-' => Ok(self.rightarrow_or_minus()),
+            '>' => Ok(Symbol::Greater),
+            '<' => Ok(self.leftarrow_or_less()),
+            '\"' => Ok(self.quoted_identifier()),
+            _ => {
+                Err(LexError::new(
+                    format!("Character not recognized {}.", c),
+                    self.line,
+                ))
+            }
+        }; // match-arm
+        return Some(result);
+    }
+    None 
+
+}
 }
