@@ -3,7 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 
 mod scanner;
-use scanner::lexify;
+use scanner::Scanner;
 
 pub struct Config {
     callname: String,
@@ -59,9 +59,10 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         let contents = fs::read_to_string(file)?;
         println!("{contents}");
 
-        let tokens = lexify(&contents)?;
-        for token in tokens {
-            println!("{token:?}");
+        let scanner = Scanner::scan(contents.chars());
+        for token in scanner {
+            let s = token?;
+            println!("{s:?}");
         }
     }
 
