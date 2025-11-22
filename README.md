@@ -1,5 +1,7 @@
 # reaction_net
 
+**WORK IN PROGRESS**
+
 `reaction_net` is a parser and compiler designed for mathematical models of chemical reaction networks found in biology and chemistry. For example, consider the following reactions:
 
 ```
@@ -32,17 +34,11 @@ Goals/Task:
 
 1. Develop the formal language 
 2. Write a scanner which parses files into tokens
-3. Write a parseer which builds a syntax tree from the sequence of tokens.
-4. Transform or translate the syntax tree into other forms.
-5. Compile into code (.eg., c/c++, python, r)
-4. Start with converting reaction equations to a matrix, rate-to-time-derivatives map, etc.
-4. Parse mathematical expressions that define the rates. 
+3. Write a parser which builds a syntax tree from the sequence of tokens.
+4. Develop a data structure for the CRN and kinetics info. 
+5. Methods to evaluate the data structure.
+6. Compile into code (e.g., c/c++, python, r)
 
-
-Useful links:
-
-* https://craftinginterpreters.com/
-* https://tiarkrompf.github.io/notes/?/just-write-the-parser/aside10
 
 
 
@@ -84,26 +80,41 @@ The issues are how to parse the identifiers correctly if they permit chracters l
 
 Solutions:
 
-1. Use `[` and `]` to i
-ndicate any name: e.g. `[2-amino-4-carbamoylbutanoic acid]`. All keywords and reserved symbols would be allow inside `[` and `]` and spaces would not be ignored. 
+1. Use `[` and `]` to indicate any name: e.g. `[2-amino-4-carbamoylbutanoic acid]`. All keywords and reserved symbols would be allow inside `[` and `]` and spaces would not be ignored. 
+2. Use `"` to indicate any identifier.
+3. `let` block before reaction declarations.
+4. `where` block after reaction declarations
+```
+let X = "1,1-difluoroethane" 
+    Y = "2-amino-4-carbamoylbutanoic acid"
+decay reaction : X -> Y : r
+    where r = k1 * X
+
+A + C1 -> B + C2
+C2 -> C3 -> C1 
+assume mass-action
+
+```
 
 #### Formal Grammar of Reaction Formulas
 
 Syntax rules for formal grammars, especially context free grammars, can be described as a string rewriting rules. Using [Extended Backus Naur Form] as notation to write the syntax rules for our reaction formulas. Quoted strings are terminal symbols while unquoted strings are non-terminal symbols. I use `->` to indicate a production (or rewriting rule). For conciseness, the `|` symbol indicates "one of" or "or". Basically, `X -> A | B` means the symbol `X` can be replaced with `A` or `B`. This is equivalent to multiple production rules `X -> A` and `X -> B`. Likewise `["*"]` indicates that the symbol `*` is optional.  
 
 Here's the basic syntax rules. 
-```
-EOF -> reacton ";" EOF
-reaction -> (complex yield complex) 
-yield -> "->" | "<-" | "<->" | "=" 
-complex -> complex "+" complexTerm
-complex' -> "+" complexTerm 
-complexTerm ->  number ["*"] complexTerm
-complex -> "(" complex ")"
-complex -> species
-number -> ? any integer ? (* these have a token type*)
-species -> ? any alphanumeric identifier ? 
-EOF -> ? end-of-file token ?
+```ebnf
+<eof> ::= <reactionstmt> | <reactionstmt> ";" <eof> | <reactionstmt> "\n" <eof>
+<reactionstmt> ::= (<symbol> ":")? <reaction> (":" <kinetics>)?  | <reactionpath>
+<reactionpath> ::=  <complex> <yield> <reactionpath> | <reaction>
+<reaction> ::= <complex> <yield> <complex>
+<yield> ::= "->" | "<-" | "<->" | "="
+<complex> ::=  <monomial> | <monomial> "+" <complex>
+<monomial> ::= <symbol> | <number> "*"? <symbol>
+<symbol> ::= [A-Z]
+<number> ::= [1-9]
+<kinetics> ::= "mass-action" | "michaelis-menten" | <expr>
+<expr> ::= <term> "+" <expr> | <term> "-" <expr> | <term>
+<term> ::= <factor> "*" <term> | <factor> "/" <term> | <factor>
+<factor> ::= <symbol> | <number> | "(" <expr> ")"
 ```
 
 The first three give us all possible reaction equations as a list, but does not allow chaining. I.e., `A -> B -> C` would be invalid. A reaction has two "complexes" (this is the word used in mathematical chemistry). The product/reactant complex is always an element of a free commutative monoid over some species symbols, where we write the monoid operation as `+`. That's a fancy way of saying that you can add any species symbol to any other as many times as you like, and the "addition" is commutative (so like regular addition). `X+Y` and `Y + X` are equivalent ways of writing the same thing.  We want to allow people to use integers to abbreviate `X + X + Y` into ` `2 X + Y`  or `2 * X + Y`

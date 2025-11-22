@@ -1,3 +1,0 @@
-(* A description of reaction_net's syntax using the extended backus naur form *)
-reaction-expr = reaction-expr, yield-symbol, reaction-expr | reaction-complex; 
-yield-symbol = "->" | "<-" | "<->" | "=";

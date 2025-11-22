@@ -6,12 +6,7 @@ use reaction_net::run;
 
 fn main() {
     let args = env::args();
-    // for arg in args.try_into() {
-    //     match arg {
-    //         "help" => println!("reaction_net *filenames*");
-    //         otherwise => println!("Arg {n} = {arg}");
-    //     }
-    // }
+
     let config = Config::build(args).unwrap_or_else( |err| {
         eprintln!("Problem parsing arguments: {err}");
         process::exit(1);

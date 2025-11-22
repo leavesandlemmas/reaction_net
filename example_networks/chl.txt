@@ -1,0 +1,2 @@
+"chlorophyll a" + H2O = "chlorophyllide a" + phytol + "H(+)" 
+"chlorophyll a" + 2 "H(+)" = "pheophytin a" + "Mg(2+)"
