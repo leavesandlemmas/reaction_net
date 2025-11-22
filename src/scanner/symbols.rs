@@ -20,10 +20,11 @@ pub enum Symbol {
     LeftArrow,
     LeftRightArrow,
     Tick,
-    Quote,
     Comma,
     Identifier(String),
-    Number(usize),
+    Number(StoichCoef),
 }
 
 pub type Tokens = Vec<Symbol>;
+
+pub type StoichCoef = u32;

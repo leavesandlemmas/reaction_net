@@ -108,7 +108,7 @@ Here's the basic syntax rules.
 <reaction> ::= <complex> <yield> <complex>
 <yield> ::= "->" | "<-" | "<->" | "="
 <complex> ::=  <monomial> | <monomial> "+" <complex>
-<monomial> ::= <symbol> | <number> "*"? <symbol>
+<monomial> ::= <symbol> | <number> "*"? <symbol> | <number>? "*"? "(" <complex> ")"
 <symbol> ::= [A-Z]
 <number> ::= [1-9]
 <kinetics> ::= "mass-action" | "michaelis-menten" | <expr>
