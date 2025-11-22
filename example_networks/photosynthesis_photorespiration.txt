@@ -1,0 +1,15 @@
+// E PHOTOSYNTHESIS
+// Photorespiration pathway
+O2 + RUBP->PGA + PGCA
+PGCA->GCA + Pi
+// transport to cytosol
+GCA <->GCAc
+// cytosol reactions 
+GCAc -> GOAc
+GOAc <-> GLYc
+2 * GLYc + NADc -> CO2c + NADHc + SERc
+GOAc + SERc <->  GLYc + HPRc 
+NADHc + HPRc <->  NADc + GCEAc
+GCEAc <-> GCEA 
+GCEA + ATP <-> PGA + ADP 
+
