@@ -30,3 +30,11 @@ pub type StoichCoef = u32;
 // non-terminal grammar symbols
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Nonterminal { }
+
+
+pub enum Symbol {
+   Token(Terminal),
+   Syntax(Nonterminal)
+}
+
+// productions are fn
