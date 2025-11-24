@@ -1,6 +1,6 @@
-// symbols
+// Terminal Symbols
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Symbol {
+pub enum Terminal {
     LeftParen,
     RightParen,
     LeftBrace,
@@ -22,9 +22,11 @@ pub enum Symbol {
     Tick,
     Comma,
     Identifier(String),
-    Number(StoichCoef),
+    Number(StoichCoef)
 }
 
-pub type Tokens = Vec<Symbol>;
-
 pub type StoichCoef = u32;
+
+// non-terminal grammar symbols
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Nonterminal { }

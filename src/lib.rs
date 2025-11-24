@@ -1,7 +1,9 @@
 use std::error::Error;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::ffi::OsStr;
 
+mod language;
 mod scanner;
 use scanner::Scanner;
 
@@ -17,11 +19,18 @@ impl Config {
 
         let mut files: Vec<PathBuf> = Vec::new();
         let mut print_usage = false;
-
+        
         for arg in args {
             if !is_option(&arg) {
-                files.push(arg.into());
-                continue;
+                let file = Path::new(&arg);
+                // skip files without extensions
+                if let Some(ext) = file.extension() {
+                    if valid_extension(ext) {
+                    files.push(file.to_path_buf());
+                    continue;
+                    }
+                }
+                
             }
 
             if is_help(&arg) {
@@ -77,7 +86,12 @@ fn is_help(arg: &str) -> bool {
     arg == "--help" || arg == "-h"
 }
 
-static USAGE: &str = "reaction_net [options] <filename.crn>
+fn valid_extension(ext : &OsStr) -> bool {
+    let valid_exts = vec![OsStr::new("txt"),OsStr::new("rxn"), OsStr::new("crn")];  
+    valid_exts.contains(&&ext)
+}
+
+static USAGE: &str = "reaction_net <filename.crn> [options]
 
 Options:
     --help                    Print usage. 
