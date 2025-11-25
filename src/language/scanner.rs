@@ -6,7 +6,7 @@ use std::iter::Peekable;
 use crate::language::grammar::Terminal;
 use crate::language::grammar::StoichCoef;
 
-type LineNum = u32;
+pub type LineNum = u32;
 
 // Errors for lexical analysis
 #[derive(Debug)]
@@ -29,7 +29,9 @@ impl fmt::Display for LexError {
 
 impl Error for LexError {}
 
-// Scanner class contains lexical analysis logic
+
+
+// Scanner contains lexical analysis logic
 pub struct Scanner<T: Iterator<Item = char>> {
     characters: Peekable<T>,
     line: LineNum

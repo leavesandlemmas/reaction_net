@@ -101,7 +101,7 @@ In a nut shell, the language is a list of chemical reactions written like `A + B
 S + E <-> ES
 ES -> E + P 
 ```
-The symbol `<->` indicates a reversible reaction. The double forward slash `//` indicates a comment that will be ignored by `reaction_net`. This allows the model's author to add useful information for other humans. We don't have to use single character symbols; this is equivalent:
+The symbol `<->` indicates a reversible reaction; we can also write `A = B`. The double forward slash `//` indicates a comment that will be ignored by `reaction_net`. This allows the model's author to add useful information for other humans. We don't have to use single character symbols; this is equivalent:
 
 
 ```
@@ -133,10 +133,14 @@ By default, reactions without kinetics are given the appropriate mass-action kin
 Multiple reactions are allowed, if multiple reactions have the same reactants and products. 
 
 ```
-slow              : A -> B : slow_k * A 
-fast              : A -> B : fast_k * A
+slow_decay        : A -> B : slow_k * A 
 enzyme_catalyzed  : A -> B : Vmax * A / (Km + A)
-product_inhibited : A -> B : Vmax * A / (A + Km * (1 + B / Ki))
+```
+
+This has the same kinetics as writing 
+
+```
+A -> B : slow_k * A + Vmax * A / (Km + A)
 ```
 
 

@@ -4,8 +4,7 @@ use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 
 mod language;
-mod scanner;
-use scanner::Scanner;
+use language::scanner::Scanner;
 
 pub struct Config {
     callname: String,
