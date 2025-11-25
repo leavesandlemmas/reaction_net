@@ -2,6 +2,7 @@
 use std::fmt;
 use std::error::Error;
 use std::iter::Peekable;
+use std::str::Chars;
 // import terminal symbols
 use crate::language::grammar::Terminal;
 use crate::language::grammar::StoichCoef;
@@ -29,30 +30,34 @@ impl fmt::Display for LexError {
 
 impl Error for LexError {}
 
-
+pub type ScanResult = Result<Terminal, LexError>;
 
 // Scanner contains lexical analysis logic
-pub struct Scanner<T: Iterator<Item = char>> {
-    characters: Peekable<T>,
-    line: LineNum
+pub struct Scanner<'a> {
+    characters: Peekable<Chars<'a>>,
+    line: LineNum,
 }
 
-impl<T: Iterator<Item = char>> Scanner<T> {
-    fn new(characters: T) -> Self {
+impl<'a> Scanner<'a> {
+    fn new(source : &'a str) -> Self {
         Self {
-            characters: characters.peekable(),
+            characters : source.chars().peekable(),
             line: 1
         }
     }
 
-    pub fn scan(characters: T) -> Self {
-        Self::new(characters)
+    pub fn scan(source : & 'a str) -> Self {
+        Self::new(source)
     }
-
+    
+    pub fn get_line_num(&self) -> LineNum {
+        self.line
+    }    
+    
     fn increment_line_num(&mut self) {
         self.line += 1;
     }
-
+    
     //advance to next character
     fn pop(&mut self) -> Option<char> {
         self.characters.next()
@@ -153,9 +158,9 @@ impl<T: Iterator<Item = char>> Scanner<T> {
 }
 
 
-impl<T : Iterator<Item = char>> Iterator for Scanner<T> {
+impl<'a> Iterator for Scanner<'a> {
 
-    type Item = Result<Terminal, LexError>;
+    type Item = ScanResult;
 
     // preform lexical analysis; return list of tokens or LexError
     fn next(&mut self) -> Option<Self::Item> {

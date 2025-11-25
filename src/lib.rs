@@ -4,7 +4,8 @@ use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 
 mod language;
-use language::scanner::Scanner;
+use language::scanner::{Scanner, LexError};
+use language::grammar::Terminal;
 
 pub struct Config {
     callname: String,
@@ -67,9 +68,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         let contents = fs::read_to_string(file)?;
         println!("{contents}");
 
-        let scanner = Scanner::scan(contents.chars());
-        for token in scanner {
-            let s = token?;
+        let scanner = Scanner::scan(&contents);
+        let tokens : Result<Vec<Terminal>, LexError> = scanner.collect();
+        let tokens = tokens? ;         
+        for token in tokens {
+            let s = token;
             println!("{s:?}");
         }
     }

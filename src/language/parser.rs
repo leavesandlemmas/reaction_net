@@ -3,7 +3,8 @@ use std::fmt;
 use std::error::Error;
 use std::iter::Peekable;
 // import grammar symbols
-use crate::language::grammar::{Terminal,Nonterminal, StoichCoef};
+use crate::language::grammar;
+use crate::language::grammar::{Terminal, StoichCoef};
 use crate::language::scanner::{Scanner, LineNum};
 
 // Errors for syntax analysis
@@ -27,14 +28,58 @@ impl fmt::Display for SyntaxError {
 
 impl Error for SyntaxError {}
 
-// Parser struct contains lexical analysis logic
-pub struct Parser<T : Iterator<Item = char>> {
-    terminals : Scanner<T>,
+// Parser struct contains syntax analysis logic
+pub struct Parser<'a> {
+    terminals : Scanner<'a>,
 }
 
 
-impl<T: Iterator<Item = char>> Parser<T> {
+impl<'a> Parser<'a> {
+
+    pub fn new(scanner : Scanner<'a>) -> Self {
+        Self {terminals : scanner}
+    }
     
+    
+    //advance to next character
+//    fn pop(&mut self) -> Option<> {
+//        self.terminals.next()
+//    }
+//
+//    fn take_next_if(&mut self, func: impl FnOnce(&Terminal) -> bool) -> Option<&Terminal> {
+//        self.terminals.next_if(|x| func( x.unwrap() )
+//    }
+//    
+//    fn match_next(&mut self, func: impl FnOnce(&Terminal) -> bool) -> bool {
+//        self.terminals.next_if(func).is_some()
+//    }
+
+    // grammar productions for recursive descent
+//    fn reaction(&self) {
+//        self.complex();
+//        self.yield();
+//        self.complex();
+//    }
+//    
+//    fn yield(&self) {
+//        if let Some(s) = self.take_next_if(grammar::is_yield_symbol) {
+//        } else {
+//        }
+//    }
+//
+//    fn complex(&self){
+//        self.monomial()
+//        self.complex_r()
+//    }
+//    
+//    fn complex_r(&self){
+//        if let Some(s) = terminals.pop() {
+//               
+//        } 
+//    }
+//    fn monomial(&self) {
+//        
+//    }        
 }
     
 

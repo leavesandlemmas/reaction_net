@@ -27,6 +27,9 @@ pub enum Terminal {
 
 pub type StoichCoef = u32;
 
+
+
+
 // non-terminal grammar symbols
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Nonterminal { }
@@ -37,4 +40,13 @@ pub enum Symbol {
    Syntax(Nonterminal)
 }
 
-// productions are fn
+
+pub fn is_yield_symbol(s : &Terminal) -> bool {
+    match s {
+        Terminal::RightArrow => true,
+        Terminal::LeftArrow => true,
+        Terminal::LeftRightArrow => true,
+        Terminal::Equal => true,
+        _ => false
+    }
+}
