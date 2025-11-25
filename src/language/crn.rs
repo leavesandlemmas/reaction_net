@@ -6,18 +6,18 @@ type SpeciesID = usize;
 
 // ensures species have unique names
 #[derive(Debug)]
-struct SpeciesRegistry {
+pub struct SpeciesRegistry {
     idmap: HashMap<String, SpeciesID>,
     names: Vec<String>,
 }
 
 impl SpeciesRegistry {
     
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {idmap : HashMap::new(), names : Vec::new()}
     }
 
-    fn register<S>(&mut self, species : S) -> SpeciesID 
+    pub fn register<S>(&mut self, species : S) -> SpeciesID 
     where 
         S:Into<String> + AsRef<str>,
     {
@@ -35,37 +35,37 @@ impl SpeciesRegistry {
        new_id
     }
 
-    fn get_name(&self, id : SpeciesID) -> &str {
+    pub fn get_name(&self, id : SpeciesID) -> &str {
         &self.names[id]
     }
 }
 
 #[derive(Debug)]
-struct Complex {
+pub struct Complex {
     terms: HashMap<SpeciesID, StoichCoef>,
 }
 
 impl Complex {
     
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {terms : HashMap::new()}    
     }
 
-    fn monomial(registry : & mut SpeciesRegistry, s : &str) -> Self {
+    pub fn monomial(registry : & mut SpeciesRegistry, s : &str) -> Self {
         let mut terms = HashMap::new();
         let id = registry.register(s);
         terms.insert(id, 1);
         Self {terms}
     }
 
-    fn monomial_with_coef(registry : & mut SpeciesRegistry, s : &str, c : StoichCoef) -> Self {
+    pub fn monomial_with_coef(registry : & mut SpeciesRegistry, s : &str, c : StoichCoef) -> Self {
         let mut terms = HashMap::new();
         let id = registry.register(s);
         terms.insert(id, c);
         Self {terms}
     }
 
-    fn binomial(registry : & mut SpeciesRegistry, a : &str, b : &str) -> Self {
+    pub fn binomial(registry : & mut SpeciesRegistry, a : &str, b : &str) -> Self {
         let mut terms = HashMap::new();
         let a = registry.register(a);
         let b = registry.register(b);
@@ -77,7 +77,7 @@ impl Complex {
         Self {terms}
     }
     
-    fn add_term(&mut self, registry : & mut SpeciesRegistry, s : &str, c : StoichCoef) {
+    pub fn add_term(&mut self, registry : & mut SpeciesRegistry, s : &str, c : StoichCoef) {
         let id = registry.register(s);
 
         self.terms.entry(id)
@@ -88,7 +88,7 @@ impl Complex {
 }
 
 #[derive(Debug)]
-struct Reaction {
+pub struct Reaction {
     name : Option<String>,
     reversible : bool, 
     reactants: Complex,
@@ -97,7 +97,7 @@ struct Reaction {
 
 impl Reaction {
 
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             name : None, 
             reversible : false,
@@ -132,8 +132,12 @@ pub struct RxNet{
 
 impl RxNet {
 
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self { registry : SpeciesRegistry::new(), reactions : Vec::new()}
+    }
+
+    pub fn make(registry : SpeciesRegistry, reactions : Vec<Reaction>) -> Self {
+        Self {registry, reactions}
     }
 
     pub fn build_example() -> Self {

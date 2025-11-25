@@ -21,24 +21,11 @@ pub enum Terminal {
     LeftRightArrow,
     Tick,
     Comma,
-    Identifier(String),
-    Number(StoichCoef)
+    Identifier,
+    Number
 }
 
 pub type StoichCoef = u32;
-
-
-
-
-// non-terminal grammar symbols
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Nonterminal { }
-
-
-pub enum Symbol {
-   Token(Terminal),
-   Syntax(Nonterminal)
-}
 
 
 pub fn is_yield_symbol(s : &Terminal) -> bool {

@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 
 mod language;
+use language::parser::{Parser, SyntaxError};
 use language::scanner::{Scanner, LexError};
 use language::grammar::Terminal;
 
@@ -70,11 +71,12 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
         let scanner = Scanner::scan(&contents);
         let tokens : Result<Vec<Terminal>, LexError> = scanner.collect();
-        let tokens = tokens? ;         
-        for token in tokens {
-            let s = token;
-            println!("{s:?}");
-        }
+        let tokens = tokens? ;
+        for token in tokens.iter() {
+            println!("{token:?}")
+        }       
+        let mut parser = Parser::new(tokens.into_iter());
+        let _ = parser.parse()?;
     }
 
     Ok(())

@@ -136,7 +136,7 @@ impl<'a> Scanner<'a> {
             }
             lexeme.push(c);
         }
-        Terminal::Identifier(lexeme)
+        Terminal::Identifier
     }
 
     fn identifier_or_number(&mut self, c: char) -> Terminal {
@@ -150,9 +150,9 @@ impl<'a> Scanner<'a> {
         if number {
             let n: StoichCoef = lexeme.parse().expect(
                 "Couldn't parse stoichiometric coefficient as integer.");
-            Terminal::Number(n)
+            Terminal::Number
         } else {
-            Terminal::Identifier(lexeme)
+            Terminal::Identifier
         }
     }
 }
