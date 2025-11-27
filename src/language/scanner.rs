@@ -1,11 +1,10 @@
 // standard imports
-use std::fmt;
 use std::error::Error;
+use std::fmt;
 use std::iter::Peekable;
 use std::str::Chars;
 // import terminal symbols
-use crate::language::grammar::Terminal;
-use crate::language::grammar::StoichCoef;
+use crate::language::grammar::{SymbolData, Terminal, Token};
 
 pub type LineNum = u32;
 
@@ -30,7 +29,7 @@ impl fmt::Display for LexError {
 
 impl Error for LexError {}
 
-pub type ScanResult = Result<Terminal, LexError>;
+pub type ScanResult = Result<Token, LexError>;
 
 // Scanner contains lexical analysis logic
 pub struct Scanner<'a> {
@@ -39,25 +38,25 @@ pub struct Scanner<'a> {
 }
 
 impl<'a> Scanner<'a> {
-    fn new(source : &'a str) -> Self {
+    fn new(source: &'a str) -> Self {
         Self {
-            characters : source.chars().peekable(),
-            line: 1
+            characters: source.chars().peekable(),
+            line: 1,
         }
     }
 
-    pub fn scan(source : & 'a str) -> Self {
+    pub fn scan(source: &'a str) -> Self {
         Self::new(source)
     }
-    
+
     pub fn get_line_num(&self) -> LineNum {
         self.line
-    }    
-    
+    }
+
     fn increment_line_num(&mut self) {
         self.line += 1;
     }
-    
+
     //advance to next character
     fn pop(&mut self) -> Option<char> {
         self.characters.next()
@@ -77,7 +76,7 @@ impl<'a> Scanner<'a> {
                 self.increment_line_num();
                 break;
             }
-        } 
+        }
     }
 
     fn multline_comment(&mut self) {
@@ -94,41 +93,41 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn comment_or_slash(&mut self) -> Option<Terminal> {
+    fn comment_or_slash(&mut self) -> Option<Token> {
         if self.match_next(|c| *c == '/') {
             self.comment();
-            None 
+            None
         } else if self.match_next(|c| *c == '*') {
             self.multline_comment();
-            None 
+            None
         } else {
-            Some(Terminal::Slash)
+            Some(Token::new(Terminal::Slash))
         }
     }
-    fn rightarrow_or_minus(&mut self) -> Terminal {
+    fn rightarrow_or_minus(&mut self) -> Token {
         // arrow ?
         if self.match_next(|c| *c == '>') {
-            Terminal::RightArrow
+            Token::new(Terminal::RightArrow)
         } else {
-            Terminal::Minus
+            Token::new(Terminal::Minus)
         }
     }
 
-    fn leftarrow_or_less(&mut self) -> Terminal {
+    fn leftarrow_or_less(&mut self) -> Token {
         //arrow ?
         if self.match_next(|c| *c == '-') {
             // double arrow?
             if self.match_next(|c| *c == '>') {
-                Terminal::LeftRightArrow
+                Token::new(Terminal::LeftRightArrow)
             } else {
-                Terminal::LeftArrow
+                Token::new(Terminal::LeftArrow)
             }
         } else {
-            Terminal::Less
+            Token::new(Terminal::Less)
         }
     }
 
-    fn quoted_identifier(&mut self)  -> Terminal {
+    fn quoted_identifier(&mut self) -> Token {
         let mut lexeme = String::new();
         while let Some(c) = self.pop() {
             if c == '\"' {
@@ -136,10 +135,10 @@ impl<'a> Scanner<'a> {
             }
             lexeme.push(c);
         }
-        Terminal::Identifier
+        Token::with_data(Terminal::Identifier, SymbolData::Identifier(lexeme))
     }
 
-    fn identifier_or_number(&mut self, c: char) -> Terminal {
+    fn identifier_or_number(&mut self, c: char) -> Token {
         let mut lexeme = String::new();
         lexeme.push(c);
         let mut number = c.is_ascii_digit();
@@ -148,78 +147,72 @@ impl<'a> Scanner<'a> {
             lexeme.push(c);
         }
         if number {
-            let n: StoichCoef = lexeme.parse().expect(
-                "Couldn't parse stoichiometric coefficient as integer.");
-            Terminal::Number
+            let n: u64 = lexeme
+                .parse()
+                .expect("Couldn't parse stoichiometric coefficient as integer.");
+            Token::with_data(Terminal::Number, SymbolData::Number(n))
         } else {
-            Terminal::Identifier
+            Token::with_data(Terminal::Identifier, SymbolData::Identifier(lexeme))
         }
     }
 }
 
-
 impl<'a> Iterator for Scanner<'a> {
-
     type Item = ScanResult;
 
     // preform lexical analysis; return list of tokens or LexError
     fn next(&mut self) -> Option<Self::Item> {
-
-
-    while let Some(c) = self.pop() {
-        // remove whitespace
-        if c.is_whitespace() {
-            if c == '\n' {
-                self.increment_line_num();
-                let s = Ok(Terminal::SemiColon);
-                return Some(s) // semicolon inserted at line break
+        while let Some(c) = self.pop() {
+            // remove whitespace
+            if c.is_whitespace() {
+                if c == '\n' {
+                    self.increment_line_num();
+                    let s = Ok(Token::new(Terminal::SemiColon));
+                    return Some(s); // semicolon inserted at line break
+                }
+                continue;
             }
-            continue;
-        }
-        
-        // remove comments
-        if c == '/' {
-            let maybe_slash = self.comment_or_slash();
-            if maybe_slash.is_some() {
-                let s = Ok(maybe_slash?);
-                 return Some(s); 
+
+            // remove comments
+            if c == '/' {
+                let maybe_slash = self.comment_or_slash();
+                if maybe_slash.is_some() {
+                    let s = Ok(maybe_slash?);
+                    return Some(s);
+                }
+                continue;
             }
-            continue; 
-        }
 
-        if c.is_alphanumeric() {
-            let s = self.identifier_or_number(c);
-            return Some(Ok(s))
-        }
+            if c.is_alphanumeric() {
+                let s = self.identifier_or_number(c);
+                return Some(Ok(s));
+            }
 
-        let result = match c {
-            '(' => Ok(Terminal::LeftParen),
-            ')' => Ok(Terminal::RightParen),
-            '{' => Ok(Terminal::LeftBrace),
-            '}' => Ok(Terminal::RightBrace),
-            '[' => Ok(Terminal::LeftBracket),
-            ']' => Ok(Terminal::RightBracket),
-            '+' => Ok(Terminal::Plus),
-            '*' => Ok(Terminal::Star),
-            ';' => Ok(Terminal::SemiColon),
-            ':' => Ok(Terminal::Colon),
-            '=' => Ok(Terminal::Equal),
-            '\'' => Ok(Terminal::Tick),
-            ',' => Ok(Terminal::Comma),
-            '-' => Ok(self.rightarrow_or_minus()),
-            '>' => Ok(Terminal::Greater),
-            '<' => Ok(self.leftarrow_or_less()),
-            '\"' => Ok(self.quoted_identifier()),
-            _ => {
-                Err(LexError::new(
+            let result = match c {
+                '(' => Ok(Token::new(Terminal::LeftParen)),
+                ')' => Ok(Token::new(Terminal::RightParen)),
+                '{' => Ok(Token::new(Terminal::LeftBrace)),
+                '}' => Ok(Token::new(Terminal::RightBrace)),
+                '[' => Ok(Token::new(Terminal::LeftBracket)),
+                ']' => Ok(Token::new(Terminal::RightBracket)),
+                '+' => Ok(Token::new(Terminal::Plus)),
+                '*' => Ok(Token::new(Terminal::Star)),
+                ';' => Ok(Token::new(Terminal::SemiColon)),
+                ':' => Ok(Token::new(Terminal::Colon)),
+                '=' => Ok(Token::new(Terminal::Equal)),
+                '\'' => Ok(Token::new(Terminal::Tick)),
+                ',' => Ok(Token::new(Terminal::Comma)),
+                '-' => Ok(self.rightarrow_or_minus()),
+                '>' => Ok(Token::new(Terminal::Greater)),
+                '<' => Ok(self.leftarrow_or_less()),
+                '\"' => Ok(self.quoted_identifier()),
+                _ => Err(LexError::new(
                     format!("Character not recognized {}.", c),
                     self.line,
-                ))
-            }
-        }; // match-arm
-        return Some(result);
+                )),
+            }; // match-arm
+            return Some(result);
+        }
+        None
     }
-    None 
-
-}
 }

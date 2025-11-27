@@ -1,12 +1,12 @@
 use std::error::Error;
+use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::ffi::OsStr;
 
 mod language;
-use language::parser::{Parser, SyntaxError};
-use language::scanner::{Scanner, LexError};
 use language::grammar::Terminal;
+use language::parser::{Parser, SyntaxError};
+use language::scanner::{LexError, Scanner};
 
 pub struct Config {
     callname: String,
@@ -20,18 +20,17 @@ impl Config {
 
         let mut files: Vec<PathBuf> = Vec::new();
         let mut print_usage = false;
-        
+
         for arg in args {
             if !is_option(&arg) {
                 let file = Path::new(&arg);
                 // skip files without extensions
                 if let Some(ext) = file.extension() {
                     if valid_extension(ext) {
-                    files.push(file.to_path_buf());
-                    continue;
+                        files.push(file.to_path_buf());
+                        continue;
                     }
                 }
-                
             }
 
             if is_help(&arg) {
@@ -70,13 +69,14 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         println!("{contents}");
 
         let scanner = Scanner::scan(&contents);
-        let tokens : Result<Vec<Terminal>, LexError> = scanner.collect();
-        let tokens = tokens? ;
-        for token in tokens.iter() {
-            println!("{token:?}")
-        }       
-        let mut parser = Parser::new(tokens.into_iter());
-        let _ = parser.parse()?;
+        //        let tokens : Result<Vec<Terminal>, LexError> = scanner.collect();
+        //        let tokens = tokens? ;
+        for token in scanner {
+            let t = token?;
+            println!("{t:?}")
+        }
+        //        let mut parser = Parser::new(tokens.into_iter());
+        //        let _ = parser.parse()?;
     }
 
     Ok(())
@@ -90,8 +90,8 @@ fn is_help(arg: &str) -> bool {
     arg == "--help" || arg == "-h"
 }
 
-fn valid_extension(ext : &OsStr) -> bool {
-    let valid_exts = vec![OsStr::new("txt"),OsStr::new("rxn"), OsStr::new("crn")];  
+fn valid_extension(ext: &OsStr) -> bool {
+    let valid_exts = vec![OsStr::new("txt"), OsStr::new("rxn"), OsStr::new("crn")];
     valid_exts.contains(&&ext)
 }
 

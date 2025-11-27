@@ -4,7 +4,7 @@ use std::fmt;
 use std::iter::Peekable;
 // import grammar symbols
 use crate::language::grammar;
-use crate::language::grammar::{StoichCoef, Terminal};
+use crate::language::grammar::Terminal;
 use crate::language::scanner::{LexError, LineNum, Scanner};
 
 // import reaction network
@@ -19,7 +19,7 @@ pub struct SyntaxError {
 
 impl SyntaxError {
     pub fn new(message: String) -> Self {
-        SyntaxError { message, line : 0 }
+        SyntaxError { message, line: 0 }
     }
 }
 
@@ -71,7 +71,7 @@ impl<T: Iterator<Item = Terminal>> Parser<T> {
         self.matches_next_if(|x| *x == symbol)
     }
 
-    pub fn parse(&mut self) -> Result<RxNet,SyntaxError> {
+    pub fn parse(&mut self) -> Result<RxNet, SyntaxError> {
         let mut registry = SpeciesRegistry::new();
         let mut reactions: Vec<Reaction> = Vec::new();
         self.reaction_list()?;
