@@ -4,9 +4,10 @@ use std::fmt;
 use std::iter::Peekable;
 use std::str::Chars;
 // import terminal symbols
-use crate::language::grammar::{SymbolData, Terminal, Token};
+use crate::language::grammar::{Terminal, Token};
+use crate::language::registry::{Registry, IdNum};
 
-pub type LineNum = u32;
+pub type LineNum = u64;
 
 // Errors for lexical analysis
 #[derive(Debug)]
@@ -35,6 +36,7 @@ pub type ScanResult = Result<Token, LexError>;
 pub struct Scanner<'a> {
     characters: Peekable<Chars<'a>>,
     line: LineNum,
+    registry : Registry,
 }
 
 impl<'a> Scanner<'a> {
@@ -42,6 +44,7 @@ impl<'a> Scanner<'a> {
         Self {
             characters: source.chars().peekable(),
             line: 1,
+            registry: Registry::new(),
         }
     }
 
@@ -93,7 +96,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn comment_or_slash(&mut self) -> Option<Token> {
+    fn comment_or_slash(&mut self) -> Option<ScanResult> {
         if self.match_next(|c| *c == '/') {
             self.comment();
             None
@@ -101,7 +104,7 @@ impl<'a> Scanner<'a> {
             self.multline_comment();
             None
         } else {
-            Some(Token::new(Terminal::Slash))
+            Some(Self::emit_token(Terminal::Slash))
         }
     }
     fn rightarrow_or_minus(&mut self) -> Token {
@@ -135,26 +138,34 @@ impl<'a> Scanner<'a> {
             }
             lexeme.push(c);
         }
-        Token::with_data(Terminal::Identifier, SymbolData::Identifier(lexeme))
+        Token::with_string(&mut self.registry, Terminal::Identifier, lexeme)
     }
 
     fn identifier_or_number(&mut self, c: char) -> Token {
         let mut lexeme = String::new();
         lexeme.push(c);
-        let mut number = c.is_ascii_digit();
         while let Some(c) = self.take_next_if(|c| c.is_alphanumeric()) {
-            number &= c.is_ascii_digit();
             lexeme.push(c);
         }
-        if number {
-            let n: u64 = lexeme
-                .parse()
-                .expect("Couldn't parse stoichiometric coefficient as integer.");
-            Token::with_data(Terminal::Number, SymbolData::Number(n))
-        } else {
-            Token::with_data(Terminal::Identifier, SymbolData::Identifier(lexeme))
-        }
+        let maybe_number = lexeme.parse::<IdNum>();
+        match maybe_number {       
+            Ok(n) => Token::with_number(Terminal::Number, n),
+            _ => Token::with_string(&mut self.registry, Terminal::Identifier, lexeme),
+        } 
+//        if let umber {
+//            let n: u64 = lexeme
+//                .parse()
+//                .expect("Couldn't parse stoichiometric coefficient as integer.");
+//            Token::with_number(Terminal::Number, n)
+//        } else {
+//            Token::with_string(registry, Terminal::Identifier, lexeme)
+//        }
     }
+
+    fn emit_token(t : Terminal) -> ScanResult {
+        Ok(Token::new(t))
+    }
+    
 }
 
 impl<'a> Iterator for Scanner<'a> {
@@ -167,8 +178,8 @@ impl<'a> Iterator for Scanner<'a> {
             if c.is_whitespace() {
                 if c == '\n' {
                     self.increment_line_num();
-                    let s = Ok(Token::new(Terminal::SemiColon));
-                    return Some(s); // semicolon inserted at line break
+                    let t = Scanner::emit_token(Terminal::SemiColon);
+                    return Some(t); // semicolon inserted at line break
                 }
                 continue;
             }
@@ -177,15 +188,14 @@ impl<'a> Iterator for Scanner<'a> {
             if c == '/' {
                 let maybe_slash = self.comment_or_slash();
                 if maybe_slash.is_some() {
-                    let s = Ok(maybe_slash?);
-                    return Some(s);
+                    return maybe_slash;
                 }
                 continue;
             }
 
             if c.is_alphanumeric() {
-                let s = self.identifier_or_number(c);
-                return Some(Ok(s));
+                let t = self.identifier_or_number(c);
+                return Some(Ok(t));
             }
 
             let result = match c {

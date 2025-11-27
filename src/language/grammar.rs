@@ -1,4 +1,4 @@
-use crate::language::registry::Registry;
+use crate::language::registry::{Registry, IdNum};
 
 // Terminal Symbols
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -29,31 +29,40 @@ pub enum Terminal {
 
 #[derive(Debug, Clone)]
 pub struct Token {
-    symbol_type: Terminal,
-    symbol_id: Option<usize>,
+    pub symbol_type: Terminal,
+    pub symbol_id: Option<IdNum>,
 }
 
 impl Token {
-    pub fn new(symbol: Terminal) -> Self {
+    pub fn new(symbol_type: Terminal) -> Self {
         Self {
-            symbol,
-            attribute: None,
+            symbol_type,
+            symbol_id: None,
         }
     }
 
-    pub fn with_data(symbol: Terminal, attribute: SymbolData) -> Self {
-        match symbol {
+    pub fn with_string(registry : &mut Registry, symbol_type: Terminal, attribute: String) -> Self {
+        let id = registry.register(attribute);
+        match symbol_type {
             Terminal::Identifier => Self {
-                symbol,
-                attribute: Some(value),
+                symbol_type,
+                symbol_id: Some(id),
             },
-            Terminal::Number => Self {
-                symbol,
-                attribute: Some(value),
-            },
-            _ => Self::new(symbol),
+            _ => Self::new(symbol_type),
         }
     }
+
+    pub fn with_number(symbol_type: Terminal, attribute: IdNum) -> Self {
+        match symbol_type {
+            Terminal::Number => Self {
+                symbol_type,
+                symbol_id: Some(attribute),
+            },
+            _ => Self::new(symbol_type),
+        }
+    }
+
+        
 }
 
 pub fn is_yield_symbol(s: &Terminal) -> bool {

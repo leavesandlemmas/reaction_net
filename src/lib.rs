@@ -75,8 +75,8 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
             let t = token?;
             println!("{t:?}")
         }
-        //        let mut parser = Parser::new(tokens.into_iter());
-        //        let _ = parser.parse()?;
+        let mut parser = Parser::new(tokens.into_iter());
+        let _ = parser.parse()?;
     }
 
     Ok(())

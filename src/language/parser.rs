@@ -4,7 +4,7 @@ use std::fmt;
 use std::iter::Peekable;
 // import grammar symbols
 use crate::language::grammar;
-use crate::language::grammar::Terminal;
+use crate::language::grammar::{Terminal, Token};
 use crate::language::scanner::{LexError, LineNum, Scanner};
 
 // import reaction network
@@ -32,45 +32,51 @@ impl fmt::Display for SyntaxError {
 impl Error for SyntaxError {}
 
 // Parser struct contains syntax analysis logic
-pub struct Parser<T: Iterator<Item = Terminal>> {
-    terminals: Peekable<T>,
+pub struct Parser<'a> {
+    scanner : Peekable<Scanner <'a>>,
 }
 
-impl<T: Iterator<Item = Terminal>> Parser<T> {
-    //    pub fn new(scanner : Scanner<'a>) -> Self {
-    //        Self {terminals : scanner}
-    //    }
-    pub fn new(terminals: T) -> Self {
-        Self {
-            terminals: terminals.peekable(),
-        }
+impl<'a> Parser<'a> {
+    pub fn new(scanner : Scanner<'a>) -> Self {
+        Self {scanner : scanner.peekable()}
+    }
+//    pub fn new(terminals: T) -> Self {
+//        Self {
+//            terminals: terminals.peekable(),
+//        }
+//    }
+    
+    // actions for token stream 
+    // advance to next character
+    fn pop(&mut self) -> Option<Token> {
+        self.scanner.next()
     }
 
-    //advance to next character
-    fn pop(&mut self) -> Option<Terminal> {
-        self.terminals.next()
+    fn peek(&mut self) -> Option<&Token> {
+        self.scanner.peek()
     }
 
-    fn peek(&mut self) -> Option<&Terminal> {
-        self.terminals.peek()
-    }
-
-    fn next_if(&mut self, func: impl FnOnce(&Terminal) -> bool) -> Option<Terminal> {
-        self.terminals.next_if(func)
+    fn next_if(&mut self, func: impl FnOnce(&Terminal) -> bool) -> Option<Token> {
+        self.scanner.next_if(|x| func(x.symbol_type))
     }
 
     fn matches_next_if(&mut self, func: impl FnOnce(&Terminal) -> bool) -> bool {
-        self.terminals.next_if(func).is_some()
+        self.scanner.next_if(|x| func(x.symbol_type)).is_some()
     }
 
     fn match_peek(&mut self, symbol: Terminal) -> bool {
-        self.peek() == Some(&symbol)
+        let succ = self.peek();
+        match succ {
+            Some(token) => token.symbol_type == symbol,
+            None => false,
+        }
     }
 
     fn match_next(&mut self, symbol: Terminal) -> bool {
         self.matches_next_if(|x| *x == symbol)
     }
 
+    //
     pub fn parse(&mut self) -> Result<RxNet, SyntaxError> {
         let mut registry = SpeciesRegistry::new();
         let mut reactions: Vec<Reaction> = Vec::new();
@@ -117,7 +123,7 @@ impl<T: Iterator<Item = Terminal>> Parser<T> {
     fn yield_symbol(&mut self) -> Result<Terminal, SyntaxError> {
         println!("Deriving yield");
         if let Some(s) = self.next_if(grammar::is_yield_symbol) {
-            Ok(s)
+            Ok(s.symbol_type)
         } else {
             Err(SyntaxError::new(
                 "Expected yield symbol '->', '<-', '<->' or '='".to_string(),
