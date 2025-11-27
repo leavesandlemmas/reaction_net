@@ -3,13 +3,16 @@ use std::collections::HashMap;
 pub type IdNum = usize;
 // data structure for labeling a set with indices
 // used for symbol table and species registry
-pub struct Registry {
-    index_map: HashMap<String, IdNum>,
-    symbols: Vec<String>, // ??? make std::rc::Rc<String> instead of String ???
+#[derive(Debug)]
+pub struct Registry<T> where 
+Hash<T> + Eq<T>
+{
+    index_map: HashMap<T, IdNum>,
+    symbols: Vec<T>, // ??? make std::rc::Rc<String> instead of String ???
     //attributes: Vec<T>, 
 }
 
-impl Registry {
+impl<T : Hash<T> + Eq<T>> Registry<T> {
     pub fn new() -> Self {
         Self {
             index_map: HashMap::new(),
@@ -18,16 +21,15 @@ impl Registry {
         }
     }
 
-    pub fn register<S>(&mut self, species: S) -> IdNum
+    pub fn register<T>(&mut self, symbol: T) -> IdNum
     where
-        S: Into<String> + AsRef<str>,
     {
-        let s = species.as_ref();
+        let s = symbol.as_ref();
         if let Some(&id) = self.index_map.get(s) { 
             return id;
         }
 
-        let owned_s = species.into();
+        let owned_s = symbol.into();
         let new_id = self.symbols.len();
 
         self.index_map.insert(owned_s.clone(), new_id);
@@ -37,7 +39,7 @@ impl Registry {
         new_id
     }
 
-    pub fn get_symbol(&self, idx : IdNum) -> &str {
+    pub fn get_symbol(&self, idx : IdNum) -> &T {
         &self.symbols[idx]
     }
     

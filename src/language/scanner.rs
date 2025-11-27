@@ -31,12 +31,13 @@ impl fmt::Display for LexError {
 impl Error for LexError {}
 
 pub type ScanResult = Result<Token, LexError>;
+pub type SymbolTable = Registry<String>;
 
 // Scanner contains lexical analysis logic
 pub struct Scanner<'a> {
     characters: Peekable<Chars<'a>>,
     line: LineNum,
-    registry : Registry,
+    registry : SymbolTable,
 }
 
 impl<'a> Scanner<'a> {
@@ -44,7 +45,7 @@ impl<'a> Scanner<'a> {
         Self {
             characters: source.chars().peekable(),
             line: 1,
-            registry: Registry::new(),
+            registry: SymbolTable::new(),
         }
     }
 
@@ -55,6 +56,10 @@ impl<'a> Scanner<'a> {
     pub fn get_line_num(&self) -> LineNum {
         self.line
     }
+    
+    pub fn symbol_table(&self) -> &SymbolTable {
+        &self.registry
+    }    
 
     fn increment_line_num(&mut self) {
         self.line += 1;

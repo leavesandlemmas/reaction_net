@@ -7,7 +7,7 @@ mod language;
 use language::grammar::Terminal;
 use language::parser::{Parser, SyntaxError};
 use language::scanner::{LexError, Scanner};
-
+use language::crn::ReactionNet;
 pub struct Config {
     callname: String,
     files: Vec<PathBuf>,
@@ -63,16 +63,18 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         println!("{USAGE}");
         return Ok(());
     }
+    let network = ReactionNet::build_example();
+    
 
-    for file in config.files {
-        let contents = fs::read_to_string(file)?;
-        println!("{contents}");
-
-        let scanner = Scanner::scan(&contents);
-        let mut parser = Parser::new(scanner);
-        let _ = parser.parse()?;
-    }
-
+//    for file in config.files {
+//        let contents = fs::read_to_string(file)?;
+//        println!("{contents}");
+//
+//        let scanner = Scanner::scan(&contents);
+//        let mut parser = Parser::new(scanner);
+//        let _ = parser.parse()?;
+//    }
+//
     Ok(())
 }
 
