@@ -12,14 +12,17 @@ use crate::language::crn::{Complex, Reaction, RxNet, SpeciesRegistry};
 
 // Errors for syntax analysis
 #[derive(Debug)]
-pub struct SyntaxError {
+pub struct SyntaxError
+{
     message: String,
     line: LineNum,
 }
 
 impl SyntaxError {
-    pub fn new(message: String) -> Self {
-        SyntaxError { message, line: 0 }
+    pub fn new<S>(message: S) -> Self 
+    where S : Into<String> + AsRef<str>
+    {
+        SyntaxError { message : message.into(), line: 0 }
     }
 }
 
@@ -31,14 +34,54 @@ impl fmt::Display for SyntaxError {
 
 impl Error for SyntaxError {}
 
-// Parser struct contains syntax analysis logic
-pub struct Parser<'a> {
-    scanner : Peekable<Scanner <'a>>,
+// Errors 
+#[derive(Debug)]
+pub enum ParseError {
+    Lex(LexError),
+    Syntax(SyntaxError),
+    UnexpectedEOF,
 }
 
+impl fmt::Display for ParseError {
+    fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ParseError::Lex(e) => write!(f, "Scanning Error: {}", e),
+            ParseError::Syntax(e) => write!(f, "Syntax Error: {}", e),
+            ParseError::UnexpectedEOF => write!(f, "Unexpected enf of input"),
+        }
+    }
+}
+
+impl Error for ParseError {}
+
+impl From<LexError> for ParseError {
+    fn from (e : LexError) -> Self {
+        ParseError::Lex(e) 
+    }
+}
+
+impl From<SyntaxError> for ParseError {
+    fn from (e : SyntaxError) -> Self {
+        ParseError::Syntax(e) 
+    }
+}
+
+// Parser struct contains syntax analysis logic
+pub struct Parser<'a> {
+    scanner : Scanner <'a>,
+    lookahead : Option<Token>,
+}
+
+type Maybe<T> = Result<Option<T>, ParseError>;
+
 impl<'a> Parser<'a> {
+  
+    
     pub fn new(scanner : Scanner<'a>) -> Self {
-        Self {scanner : scanner.peekable()}
+        Self {
+            scanner,
+            lookahead : None, 
+        }
     }
 //    pub fn new(terminals: T) -> Self {
 //        Self {
@@ -48,50 +91,106 @@ impl<'a> Parser<'a> {
     
     // actions for token stream 
     // advance to next character
-    fn pop(&mut self) -> Option<Token> {
-        self.scanner.next()
+    fn pop_token(&mut self) -> Maybe<Token> {
+        // check lookahead buffer first        
+        if let Some(token) = self.lookahead.take() {
+            return Ok(Some(token));
+        } 
+       
+        // pop next token and handle lex error
+        match self.scanner.next() {
+            Some(Ok(token)) => Ok(Some(token)),
+            Some(Err(e)) => Err(ParseError::Lex(e)),            
+            None => Ok(None),
+        }
+        
     }
 
-    fn peek(&mut self) -> Option<&Token> {
-        self.scanner.peek()
-    }
-
-    fn next_if(&mut self, func: impl FnOnce(&Terminal) -> bool) -> Option<Token> {
-        self.scanner.next_if(|x| func(x.symbol_type))
-    }
-
-    fn matches_next_if(&mut self, func: impl FnOnce(&Terminal) -> bool) -> bool {
-        self.scanner.next_if(|x| func(x.symbol_type)).is_some()
-    }
-
-    fn match_peek(&mut self, symbol: Terminal) -> bool {
-        let succ = self.peek();
-        match succ {
-            Some(token) => token.symbol_type == symbol,
-            None => false,
+    // look at next character without consuming
+    fn peek_token(&mut self) -> Maybe<&Token> {
+        // check buffer 
+        if self.lookahead.is_some() {
+            return Ok(self.lookahead.as_ref());
+        }
+        // if buffer is none, then pop and put into buffer
+        // handling errors
+        match self.scanner.next() {
+            Some(Ok(token)) => {
+                self.lookahead = Some(token);
+                Ok(self.lookahead.as_ref())
+            }
+            Some(Err(e)) => Err(ParseError::Lex(e)),
+            None => Ok(None),
         }
     }
-
-    fn match_next(&mut self, symbol: Terminal) -> bool {
-        self.matches_next_if(|x| *x == symbol)
+    
+    // advance to next character if next token satisfies predicate
+    fn next_if(&mut self, predicate: impl FnOnce(&Terminal) -> bool) -> Maybe<Token> {
+        if self.peek_if(predicate) {
+            self.pop_token()
+        } else {
+            Ok(None)
+        }
+    }
+    
+    // check if next token satisfies predicate 
+    fn peek_if(&mut self, predicate: impl FnOnce(&Terminal) -> bool) -> bool {
+        let m = self.peek_token();
+        if let Ok(Some(token)) = self.peek_token() {
+            predicate(&token.symbol_type)
+        } else {
+            false
+        }
+    }
+    
+    // check if next token matches without consuming
+    fn peek_if_match(&mut self, symbol: Terminal) -> bool {
+        self.peek_if(|x : &Terminal| *x == symbol)       
     }
 
-    //
-    pub fn parse(&mut self) -> Result<RxNet, SyntaxError> {
+    // check if next token matches; consume if yes 
+    fn next_if_match(&mut self, symbol: Terminal) -> Maybe<Token> {
+        self.next_if(|x : &Terminal| *x == symbol)
+    }
+   
+    // check if next token matches; consume if yes 
+    fn advance_if_match(&mut self, symbol: Terminal) -> bool {
+        let matched = self.peek_if_match(symbol);
+        if matched {
+            let _ = self.pop_token();
+            true
+        } else {
+            false
+        }
+    }   
+
+    fn emit_error<S, E>(msg : S) -> Result<E, ParseError>
+    where
+        S: Into<String> + AsRef<str>,
+    {
+        let e = SyntaxError::new(msg);
+        Err(ParseError::Syntax(e))
+    }
+
+
+
+    // build CRN from recursiving descent parsing
+    pub fn parse(&mut self) -> Result<RxNet, ParseError> {
         let mut registry = SpeciesRegistry::new();
         let mut reactions: Vec<Reaction> = Vec::new();
         self.reaction_list()?;
         Ok(RxNet::make(registry, reactions))
     }
+
     // grammar productions for recursive descent
-    fn reaction_list(&mut self) -> Result<(), SyntaxError> {
+    fn reaction_list(&mut self) -> Result<(), ParseError> {
         println!("Deriving reaction_list");
         self.reaction()?;
         self.reaction_r()?;
         Ok(())
     }
 
-    fn reaction(&mut self) -> Result<(), SyntaxError> {
+    fn reaction(&mut self) -> Result<(), ParseError> {
         println!("Deriving reaction");
         self.complex()?;
         self.yield_symbol()?;
@@ -99,77 +198,69 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn reaction_r(&mut self) -> Result<(), SyntaxError> {
+    fn reaction_r(&mut self) -> Result<(), ParseError> {
         println!("Deriving reaction_r");
-        if self.match_next(Terminal::SemiColon) {
-            if self.peek().is_some() {
+        if self.advance_if_match(Terminal::SemiColon) {
+            let next = self.peek_token()?; 
+            if next.is_some() {
                 self.reaction()?;
                 self.reaction_r()?;
             }
             Ok(())
         } else {
-            if let Some(s) = self.pop() {
-                Err(SyntaxError::new(format!(
-                    "Expected newline or ';' but found unexpected '{s:?}'"
-                )))
-            } else {
-                Err(SyntaxError::new(
-                    "Expected newline or ';' but no further input found".to_string(),
-                ))
-            }
-        }
+            let msg = format!(
+                    "Expected newline or ';' but found unexpected");
+           Self::emit_error(msg)
+          }
     }
 
-    fn yield_symbol(&mut self) -> Result<Terminal, SyntaxError> {
+    fn yield_symbol(&mut self) -> Result<Terminal, ParseError> {
         println!("Deriving yield");
-        if let Some(s) = self.next_if(grammar::is_yield_symbol) {
+        let maybe_token = self.next_if(grammar::is_yield_symbol)?;
+        if let Some(s) = maybe_token {
             Ok(s.symbol_type)
         } else {
-            Err(SyntaxError::new(
-                "Expected yield symbol '->', '<-', '<->' or '='".to_string(),
-            ))
+            Self::emit_error("Expected yield symbol '->', '<-', '<->' or '='")
         }
     }
 
-    fn complex(&mut self) -> Result<(), SyntaxError> {
+    fn complex(&mut self) -> Result<(), ParseError> {
         println!("Deriving complex");
         self.monomial()?;
         self.complex_r()?;
         Ok(())
     }
 
-    fn complex_r(&mut self) -> Result<(), SyntaxError> {
+    fn complex_r(&mut self) -> Result<(), ParseError> {
         println!("Deriving complex_r");
-        if self.match_next(Terminal::Plus) {
+        if self.advance_if_match(Terminal::Plus) {
             self.monomial()?;
             self.complex_r()?;
         }
         Ok(())
     }
 
-    fn monomial(&mut self) -> Result<(), SyntaxError> {
+    fn monomial(&mut self) -> Result<(), ParseError> {
         println!("Deriving monomial");
-        if self.match_peek(Terminal::Number) {
-            self.match_next(Terminal::Star);
+        if self.advance_if_match(Terminal::Number) {
+            self.advance_if_match(Terminal::Star);
         }
         self.factor()?;
         Ok(())
     }
 
-    fn factor(&mut self) -> Result<(), SyntaxError> {
+    fn factor(&mut self) -> Result<(), ParseError> {
         println!("Deriving factor");
-        if self.match_next(Terminal::Identifier) {
+        if self.advance_if_match(Terminal::Identifier) {
             Ok(())
-        } else if self.match_next(Terminal::LeftParen) {
+        } else if self.advance_if_match(Terminal::LeftParen) {
             self.complex()?;
-            if !self.match_next(Terminal::RightParen) {
-                return Err(SyntaxError::new(
-                    "Unmatched parentheses. Expected ')' but found 's'".to_string(),
-                ));
+            if !self.advance_if_match(Terminal::RightParen) {
+                return Self::emit_error("Unmatched parentheses. Expected ')' but found 's'");
             }
             Ok(())
         } else {
-            Err(SyntaxError::new("Factor Error.".to_string()))
+            Self::emit_error("Factor Error.")
         }
     }
 }

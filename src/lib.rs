@@ -69,13 +69,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         println!("{contents}");
 
         let scanner = Scanner::scan(&contents);
-        //        let tokens : Result<Vec<Terminal>, LexError> = scanner.collect();
-        //        let tokens = tokens? ;
-        for token in scanner {
-            let t = token?;
-            println!("{t:?}")
-        }
-        let mut parser = Parser::new(tokens.into_iter());
+        let mut parser = Parser::new(scanner);
         let _ = parser.parse()?;
     }
 
