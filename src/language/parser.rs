@@ -231,14 +231,15 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn complex(&mut self) -> Result<(), ParseError> {
+    fn complex(&mut self) -> Result<Complex, ParseError> {
         println!("Deriving complex");
-        self.monomial()?;
+        let cplx = Complex::new();
+        let = self.monomial(cplx);
         self.next_monomial()?;
         Ok(())
     }
 
-    fn next_monomial(&mut self) -> Result<(), ParseError> {
+    fn next_monomial(&mut self) -> Result<Complex, ParseError> {
         println!("Deriving next_monomial");
         if self.advance_if_match(Terminal::Plus) {
             self.monomial()?;
@@ -247,18 +248,20 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn monomial(&mut self) -> Result<(), ParseError> {
+    fn monomial(&mut self, cplx : Complex) -> Result<Complex, ParseError> {
         println!("Deriving monomial");
         if self.advance_if_match(Terminal::Number) {
             self.advance_if_match(Terminal::Star);
         }
         self.species()?;
-        Ok(())
+        Ok(cplx)
     }
 
-    fn species(&mut self) -> Result<(), ParseError> {
+    fn species(&mut self, crn : &mut ReactionNet) -> Result<(), ParseError> {
         println!("Deriving species");
-        if self.advance_if_match(Terminal::Identifier) {
+        if self.peek_if_match(Terminal::Identifier) {
+            let token = self.pop_token();
+            crn.register_species(token.attribute.unwrap());
             Ok(())
         } else if self.advance_if_match(Terminal::LeftParen) {
             self.complex()?;

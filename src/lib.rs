@@ -2,6 +2,7 @@ use std::error::Error;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
+mod data;
 
 mod language;
 use language::grammar::Terminal;
