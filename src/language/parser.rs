@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fmt;
 // import grammar symbols
 use crate::language::grammar;
-use crate::language::grammar::{Terminal, Token};
+use crate::language::grammar::Terminal;
 use crate::language::scanner::{LexError, LineNum, Scanner};
 
 // import reaction network
@@ -67,7 +67,7 @@ impl From<SyntaxError> for ParseError {
 // Parser struct contains syntax analysis logic
 pub struct Parser<'a> {
     scanner : Scanner <'a>,
-    lookahead : Option<Token>,
+    lookahead : Option<Terminal>,
 }
 
 type Maybe<T> = Result<Option<T>, ParseError>;
@@ -89,7 +89,7 @@ impl<'a> Parser<'a> {
     
     // actions for token stream 
     // advance to next character
-    fn pop_token(&mut self) -> Maybe<Token> {
+    fn pop_token(&mut self) -> Maybe<Terminal> {
         // check lookahead buffer first        
         if let Some(token) = self.lookahead.take() {
             return Ok(Some(token));
@@ -105,7 +105,7 @@ impl<'a> Parser<'a> {
     }
 
     // look at next character without consuming
-    fn peek_token(&mut self) -> Maybe<&Token> {
+    fn peek_token(&mut self) -> Maybe<&Terminal> {
         // check buffer 
         if self.lookahead.is_some() {
             return Ok(self.lookahead.as_ref());
@@ -123,7 +123,7 @@ impl<'a> Parser<'a> {
     }
     
     // advance to next character if next token satisfies predicate
-    fn next_if(&mut self, predicate: impl FnOnce(&Terminal) -> bool) -> Maybe<Token> {
+    fn next_if(&mut self, predicate: impl FnOnce(&Terminal) -> bool) -> Maybe<Terminal> {
         if self.peek_if(predicate) {
             self.pop_token()
         } else {
@@ -135,7 +135,7 @@ impl<'a> Parser<'a> {
     fn peek_if(&mut self, predicate: impl FnOnce(&Terminal) -> bool) -> bool {
         let m = self.peek_token();
         if let Ok(Some(token)) = self.peek_token() {
-            predicate(&token.symbol_type)
+            predicate(&token)
         } else {
             false
         }
@@ -147,7 +147,7 @@ impl<'a> Parser<'a> {
     }
 
     // check if next token matches; consume if yes 
-    fn next_if_match(&mut self, symbol: Terminal) -> Maybe<Token> {
+    fn next_if_match(&mut self, symbol: Terminal) -> Maybe<Terminal> {
         self.next_if(|x : &Terminal| *x == symbol)
     }
    
@@ -222,7 +222,7 @@ impl<'a> Parser<'a> {
         println!("Deriving yield");
         let maybe_token = self.next_if(grammar::is_yield_symbol)?;
         if let Some(s) = maybe_token {
-            Ok(s.symbol_type)
+            Ok(s)
         } else {
             Self::emit_error("Expected yield symbol '->', '<-', '<->' or '='")
         }
@@ -247,7 +247,7 @@ impl<'a> Parser<'a> {
 
     fn monomial(&mut self) -> Result<(), ParseError> {
         println!("Deriving monomial");
-        if self.advance_if_match(Terminal::Number) {
+        if let Some(Terminal::Number(coef)) = self.peek_token()? {  
             self.advance_if_match(Terminal::Star);
         }
         self.species()?;
@@ -256,8 +256,8 @@ impl<'a> Parser<'a> {
 
     fn species(&mut self) -> Result<(), ParseError> {
         println!("Deriving species");
-        if self.peek_if_match(Terminal::Identifier) {
-            let token = self.pop_token();
+        if self.peek_if(|x| x.is_identifier()) {
+            let token = self.pop_token()?;
             //crn.register_species(token.attribute.unwrap());
             Ok(())
         } else if self.advance_if_match(Terminal::LeftParen) {
