@@ -1,14 +1,12 @@
 // standard imports
 use std::error::Error;
 use std::fmt;
-use std::iter::Peekable;
 // import grammar symbols
 use crate::language::grammar;
 use crate::language::grammar::{Terminal, Token};
 use crate::language::scanner::{LexError, LineNum, Scanner};
 
 // import reaction network
-use crate::language::crn::{Complex, Reaction, ReactionNet};
 
 // Errors for syntax analysis
 #[derive(Debug)]
@@ -175,34 +173,33 @@ impl<'a> Parser<'a> {
 
 
     // build CRN from recursiving descent parsing
-    pub fn parse(&mut self) -> Result<ReactionNet, ParseError> {
-        let mut crn_empty = ReactionNet::new();
-        let crn = self.reaction_list(crn_empty)?;
-        Ok(crn)
+    pub fn parse(&mut self) -> Result<(), ParseError> {
+        self.reaction_list()?;
+        Ok(())
     }
 
     // grammar productions for recursive descent
-    fn reaction_list(&mut self, crn : ReactionNet) -> Result<ReactionNet, ParseError> {
+    fn reaction_list(&mut self) -> Result<(), ParseError> {
         println!("Deriving reaction_list");
-        let crn = self.reaction(crn)?;
-        let crn = self.next_reaction(crn)?;
-        Ok(crn)
+        self.reaction()?;
+        self.next_reaction()?;
+        Ok(())
     }
 
-    fn reaction(&mut self, crn : ReactionNet) -> Result<ReactionNet, ParseError> {
+    fn reaction(&mut self) -> Result<(), ParseError> {
         println!("Deriving reaction");
         
         let left_cplx = self.complex()?;
         let y = self.yield_symbol()?;
         let right_cplx = self.complex()?;
-        let rxn = match y {
-            Terminal::RightArrow => Reaction::forward(left_cplx, right_cplx),
-            Terminal::LeftArrow => Reaction::forward(right_cplx, left_cplx),
-            Terminal::LeftRightArrow => Reaction::reversible(left_cplx, right_cplx),
-            Terminal::Equal => Reaction::reversible(left_cplx, right_cplx),
-        };
-        crn.add_reaction(rxn);
-        Ok(crn)
+//        let rxn = match y {
+//            Terminal::RightArrow => Reaction::forward(left_cplx, right_cplx),
+//            Terminal::LeftArrow => Reaction::forward(right_cplx, left_cplx),
+//            Terminal::LeftRightArrow => Reaction::reversible(left_cplx, right_cplx),
+//            Terminal::Equal => Reaction::reversible(left_cplx, right_cplx),
+//        };
+//        crn.add_reaction(rxn);
+        Ok(())
     }
 
     fn next_reaction(&mut self) -> Result<(), ParseError> {
@@ -231,15 +228,15 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn complex(&mut self) -> Result<Complex, ParseError> {
+    fn complex(&mut self) -> Result<(), ParseError> {
         println!("Deriving complex");
-        let cplx = Complex::new();
-        let = self.monomial(cplx);
+//        let cplx = Complex::new();
+        self.monomial()?;
         self.next_monomial()?;
         Ok(())
     }
 
-    fn next_monomial(&mut self) -> Result<Complex, ParseError> {
+    fn next_monomial(&mut self) -> Result<(), ParseError> {
         println!("Deriving next_monomial");
         if self.advance_if_match(Terminal::Plus) {
             self.monomial()?;
@@ -248,20 +245,20 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn monomial(&mut self, cplx : Complex) -> Result<Complex, ParseError> {
+    fn monomial(&mut self) -> Result<(), ParseError> {
         println!("Deriving monomial");
         if self.advance_if_match(Terminal::Number) {
             self.advance_if_match(Terminal::Star);
         }
         self.species()?;
-        Ok(cplx)
+        Ok(())
     }
 
-    fn species(&mut self, crn : &mut ReactionNet) -> Result<(), ParseError> {
+    fn species(&mut self) -> Result<(), ParseError> {
         println!("Deriving species");
         if self.peek_if_match(Terminal::Identifier) {
             let token = self.pop_token();
-            crn.register_species(token.attribute.unwrap());
+            //crn.register_species(token.attribute.unwrap());
             Ok(())
         } else if self.advance_if_match(Terminal::LeftParen) {
             self.complex()?;

@@ -1,5 +1,4 @@
-use crate::language::registry::{Registry, IdNum};
-
+use crate::data::IdNum;
 // Terminal Symbols
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Terminal {
@@ -41,27 +40,9 @@ impl Token {
         }
     }
 
-    pub fn with_string(registry : &mut Registry, symbol_type: Terminal, attribute: String) -> Self {
-        let id = registry.register(attribute);
-        match symbol_type {
-            Terminal::Identifier => Self {
-                symbol_type,
-                symbol_id: Some(id),
-            },
-            _ => Self::new(symbol_type),
-        }
+    pub fn with(symbol_type: Terminal, symbol_id : IdNum) -> Self {
+        Self {symbol_type, symbol_id : Some (symbol_id)}
     }
-
-    pub fn with_number(symbol_type: Terminal, attribute: IdNum) -> Self {
-        match symbol_type {
-            Terminal::Number => Self {
-                symbol_type,
-                symbol_id: Some(attribute),
-            },
-            _ => Self::new(symbol_type),
-        }
-    }
-
         
 }
 

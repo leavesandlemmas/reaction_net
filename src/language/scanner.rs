@@ -5,7 +5,7 @@ use std::iter::Peekable;
 use std::str::Chars;
 // import terminal symbols
 use crate::language::grammar::{Terminal, Token};
-use crate::language::registry::{Registry, IdNum};
+use crate::data::registry::{Registry, IdNum};
 
 pub type LineNum = u64;
 
@@ -143,7 +143,7 @@ impl<'a> Scanner<'a> {
             }
             lexeme.push(c);
         }
-        Token::with_string(&mut self.registry, Terminal::Identifier, lexeme)
+        self.token_with_string(Terminal::Identifier, lexeme)
     }
 
     fn identifier_or_number(&mut self, c: char) -> Token {
@@ -154,8 +154,8 @@ impl<'a> Scanner<'a> {
         }
         let maybe_number = lexeme.parse::<IdNum>();
         match maybe_number {       
-            Ok(n) => Token::with_number(Terminal::Number, n),
-            _ => Token::with_string(&mut self.registry, Terminal::Identifier, lexeme),
+            Ok(n) => self.token_with_number(Terminal::Number, n),
+            _ => self.token_with_string(Terminal::Identifier, lexeme),
         } 
 //        if let umber {
 //            let n: u64 = lexeme
@@ -170,6 +170,22 @@ impl<'a> Scanner<'a> {
     fn emit_token(t : Terminal) -> ScanResult {
         Ok(Token::new(t))
     }
+    
+    fn token_with_string(&mut self, symbol_type: Terminal, attribute: String) -> Token {
+        let id = self.registry.register(attribute);
+        match symbol_type {
+            Terminal::Identifier => Token::with(symbol_type, id),
+            _ => Token::new(symbol_type),
+        }
+    }
+
+    fn token_with_number(&self, symbol_type: Terminal, attribute: IdNum) -> Token {
+        match symbol_type {
+            Terminal::Number => Token::with( symbol_type, attribute),
+            _ => Token::new(symbol_type),
+        }
+    }
+
     
 }
 

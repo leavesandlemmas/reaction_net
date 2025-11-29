@@ -1,14 +1,14 @@
 use std::error::Error;
 use std::ffi::OsStr;
-use std::fs;
 use std::path::{Path, PathBuf};
 mod data;
-
 mod language;
-use language::grammar::Terminal;
-use language::parser::{Parser, SyntaxError};
-use language::scanner::{LexError, Scanner};
-use language::crn::ReactionNet;
+mod network;
+use network::Network;
+//use language::grammar::Terminal;
+//use language::parser::{Parser, SyntaxError};
+//use language::scanner::{LexError, Scanner};
+
 pub struct Config {
     callname: String,
     files: Vec<PathBuf>,
@@ -64,7 +64,9 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         println!("{USAGE}");
         return Ok(());
     }
-    let network = ReactionNet::build_example();
+   
+
+//    let network = ReactionNet::build_example();
     
 
 //    for file in config.files {
