@@ -37,51 +37,21 @@ impl Terminal {
         matches!(*self, Terminal::Identifier(_))
     }
 
-    pub fn unwrap_number(self) -> u64 {
-    
+    pub fn get_number(self) -> Option<u64> {
+         match self {
+            Terminal::Number(n) => Some(n),
+            _ => None,
+        }    
     } 
     
-    pub fn unwrap_identifier(self) -> Result<String, Error> {
+    pub fn get_identifier(self) -> Option<String> {
         match self {
-            Terminal::Identifier(s) => Ok(s),
-            _ => Err(),
+            Terminal::Identifier(s) => Some(s),
+            _ => None,
         }
     }
 }
 
-//#[derive(Debug, Clone)]
-//pub struct Token {
-//    symbol_type: Terminal,
-//    symbol_id: Option<Attribute>,
-//}
-//
-//impl Token {
-//    pub fn new(symbol_type: Terminal) -> Self {
-//        Self {
-//            symbol_type,
-//            symbol_id: None,
-//        }
-//    }
-//
-//    pub fn identifier(lexeme : String) -> Self {
-//        Self {symbol_type : Terminal::Identifier, symbol_id : Some (Attribute::Id(lexeme))}
-//    }
-//        
-//    
-//    pub fn number(num : u64) -> Self {
-//        Self {symbol_type : Terminal::Identifier, symbol_id : Some (Attribute::Num(num))}
-//    }
-//
-//}
-//
-//
-//#[derive(Debug)]
-//enum Attribute {
-//    Num(u64),
-//    Id(String),
-//}
-//
-//
 
 pub fn is_yield_symbol(s: &Terminal) -> bool {
     match s {

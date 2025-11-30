@@ -1,13 +1,14 @@
 use std::error::Error;
 use std::ffi::OsStr;
+use std::fs;
 use std::path::{Path, PathBuf};
 mod data;
 mod language;
 mod network;
 use network::Network;
-//use language::grammar::Terminal;
-//use language::parser::{Parser, SyntaxError};
-//use language::scanner::{LexError, Scanner};
+use language::grammar::Terminal;
+use language::parser::{Parser, SyntaxError};
+use language::scanner::{LexError, Scanner};
 
 pub struct Config {
     callname: String,
@@ -69,15 +70,15 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 //    let network = ReactionNet::build_example();
     
 
-//    for file in config.files {
-//        let contents = fs::read_to_string(file)?;
-//        println!("{contents}");
-//
-//        let scanner = Scanner::scan(&contents);
-//        let mut parser = Parser::new(scanner);
-//        let _ = parser.parse()?;
-//    }
-//
+    for file in config.files {
+        let contents = fs::read_to_string(file)?;
+        println!("{contents}");
+
+        let scanner = Scanner::scan(&contents);
+        let mut parser = Parser::new(scanner);
+        let _ = parser.parse()?;
+    }
+
     Ok(())
 }
 
