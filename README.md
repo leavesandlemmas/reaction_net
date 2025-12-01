@@ -145,89 +145,10 @@ A -> B : slow_k * A + Vmax * A / (Km + A)
 
 
 
-
-### 
-
-Reaction net's language has three contexts: names, formulas, and rate-kinetics expressions.  The idea is that a reaction can have a name, formula showing its stoichiometry, and a mathematical expression showing the reaction rate:
-
-```
-reaction_name_1 : reaction_formula_1 : reaction_rate_1; 
-reaction_name_2 : reaction_formula_2 : reaction_rate_2; 
-```
-
-The reaction name and reaction rate expression are optional.
-
-### Reaction formulas
-
-A reaction formula has one of the following forms:
-
-```
-X -> Y
-X <- Y
-X <-> Y
-X = Y 
-```
-
-The reaction arrows indicate the direction of the reaction. `<->` is a reversible reaction and `=` indicates a reversible reaction. Here `X` and `Y` are a vector with only positive coefficients, or more properly a *commutative monoid*. To spell out what that means, in general, `X` and `Y` have the form:
-```
-X = a1 * X1 + a2 * X2 + ...  + an * Xn  
-```
-where `a1, a2, ...` are stoichiometric coefficients (either positive integers or positive real numbers) and `X1` are chemical species or metabolites. 
-
-
-In general, it would be nice if chemical formulas could be used: `NH4(+)`, `H2O`,  `1,1-difluoroethane` and `2-amino-4-carbamoylbutanoic acid`. 
-* What to allow for symbols `X` ? 
-* Is this valid `2-oxoglutarate`? 
-* Is this valid `NH4(+)` ?  
-* How should `2 * (X + Y) -> Z` be interpreted? 
-The issues are how to parse the identifiers correctly if they permit chracters like `-`, `+`, `(`, and `)`. It would be nice to allow for substitutions: `X = 1,1-difluoroethane` in the file. 
-
-Solutions:
-
-1. Use `[` and `]` to indicate any name: e.g. `[2-amino-4-carbamoylbutanoic acid]`. All keywords and reserved symbols would be allow inside `[` and `]` and spaces would not be ignored. 
-2. Use `"` to indicate any identifier.
-3. `let` block before reaction declarations.
-4. `where` block after reaction declarations
-```
-let X = "1,1-difluoroethane" 
-    Y = "2-amino-4-carbamoylbutanoic acid"
-decay reaction : X -> Y : r
-    where r = k1 * X
-
-A + C1 -> B + C2
-C2 -> C3 -> C1 
-assume mass-action
-
-```
-
-#### Formal Grammar of Reaction Formulas
-
-Syntax rules for formal grammars, especially context free grammars, can be described as a string rewriting rules. Using [Extended Backus Naur Form] as notation to write the syntax rules for our reaction formulas. Quoted strings are terminal symbols while unquoted strings are non-terminal symbols. I use `->` to indicate a production (or rewriting rule). For conciseness, the `|` symbol indicates "one of" or "or". Basically, `X -> A | B` means the symbol `X` can be replaced with `A` or `B`. This is equivalent to multiple production rules `X -> A` and `X -> B`. Likewise `["*"]` indicates that the symbol `*` is optional.  
-
-Here's the basic syntax rules. 
-```ebnf
-<eof> ::= <reactionstmt> | <reactionstmt> ";" <eof> | <reactionstmt> "\n" <eof>
-<reactionstmt> ::= (<symbol> ":")? <reaction> (":" <kinetics>)?  | <reactionpath>
-<reactionpath> ::=  <complex> <yield> <reactionpath> | <reaction>
-<reaction> ::= <complex> <yield> <complex>
-<yield> ::= "->" | "<-" | "<->" | "="
-<complex> ::=  <monomial> | <monomial> "+" <complex>
-<monomial> ::= <symbol> | <number> "*"? <symbol> | <number>? "*"? "(" <complex> ")"
-<symbol> ::= [A-Z]
-<number> ::= [1-9]
-<kinetics> ::= "mass-action" | "michaelis-menten" | <expr>
-<expr> ::= <term> "+" <expr> | <term> "-" <expr> | <term>
-<term> ::= <factor> "*" <term> | <factor> "/" <term> | <factor>
-<factor> ::= <symbol> | <number> | "(" <expr> ")"
-```
-
-The first three give us all possible reaction equations as a list, but does not allow chaining. I.e., `A -> B -> C` would be invalid. A reaction has two "complexes" (this is the word used in mathematical chemistry). The product/reactant complex is always an element of a free commutative monoid over some species symbols, where we write the monoid operation as `+`. That's a fancy way of saying that you can add any species symbol to any other as many times as you like, and the "addition" is commutative (so like regular addition). `X+Y` and `Y + X` are equivalent ways of writing the same thing.  We want to allow people to use integers to abbreviate `X + X + Y` into ` `2 X + Y`  or `2 * X + Y`
-
-We might want to make the complexes into elements of a free vector space so that we have arbitrary symbols for stoichiometric coefficients. That way, you could write `a * X + Y` and specify the stoichiometric coefficient later. But let's put a pin in that.
+ 
+## Overview of `reaction_net`'s structure.
 
 
 
-### Reaction Rate Expressions
 
-Mostly should be mathematical notation as in any programming language.
 
