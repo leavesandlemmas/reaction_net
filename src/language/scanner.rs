@@ -41,7 +41,7 @@ impl<'a> Scanner<'a> {
     fn new(source: &'a str) -> Self {
         Self {
             characters: source.chars().peekable(),
-            line: 1
+            line: 1,
         }
     }
 

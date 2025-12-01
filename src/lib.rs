@@ -66,8 +66,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
    
-
-//    let network = ReactionNet::build_example();
+    let network = Network::new();
     
 
     for file in config.files {
@@ -76,7 +75,8 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
         let scanner = Scanner::scan(&contents);
         let mut parser = Parser::new(scanner);
-        let _ = parser.parse()?;
+        let crn = parser.parse()?;
+        println!("{crn:?}")
     }
 
     Ok(())

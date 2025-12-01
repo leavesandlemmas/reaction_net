@@ -17,7 +17,7 @@ impl Reaction {
         }
     }
 
-    fn reversible(reactants: Complex, products: Complex) -> Self {
+    pub fn reversible(reactants: Complex, products: Complex) -> Self {
         Self {
             name: None,
             reversible: true,
@@ -26,7 +26,7 @@ impl Reaction {
         }
     }
 
-    fn forward(reactants: Complex, products: Complex) -> Self {
+    pub fn forward(reactants: Complex, products: Complex) -> Self {
         Self {
             name: None,
             reversible: false,
@@ -35,7 +35,7 @@ impl Reaction {
         }
     }
 
-    fn named_reversible(name: String, reactants: Complex, products: Complex) -> Self {
+    pub fn named_reversible(name: String, reactants: Complex, products: Complex) -> Self {
         Self {
             name: Some(name),
             reversible: true,
@@ -44,13 +44,31 @@ impl Reaction {
         }
     }
 
-    fn named_forward(name: String, reactants: Complex, products: Complex) -> Self {
+    pub fn named_forward(name: String, reactants: Complex, products: Complex) -> Self {
         Self {
             name: Some(name),
             reversible: false,
             reactants,
             products,
         }
+    }
+
+    pub fn set_name(&mut self, name : String) {
+        self.name = Some(name);
+    }
+    
+    pub fn is_reversible(&self) -> bool {
+        self.reversible
+    }
+
+    
+    pub fn get_reactants(&self) -> &Complex {
+        &self.reactants
+    }
+
+
+    pub fn get_products(&self) -> &Complex {
+        &self.products
     }
 }
 

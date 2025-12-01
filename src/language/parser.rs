@@ -7,6 +7,7 @@ use crate::language::grammar::Terminal;
 use crate::language::scanner::{LexError, LineNum, Scanner};
 
 // import reaction network
+use crate::network::{Network, Reaction, Complex};
 
 // Errors for syntax analysis
 #[derive(Debug)]
@@ -81,11 +82,6 @@ impl<'a> Parser<'a> {
             lookahead : None, 
         }
     }
-//    pub fn new(terminals: T) -> Self {
-//        Self {
-//            terminals: terminals.peekable(),
-//        }
-//    }
     
     // actions for token stream 
     // advance to next character
@@ -173,42 +169,47 @@ impl<'a> Parser<'a> {
 
 
     // build CRN from recursiving descent parsing
-    pub fn parse(&mut self) -> Result<(), ParseError> {
-        self.reaction_list()?;
-        Ok(())
+    pub fn parse(&mut self) -> Result<Network, ParseError> {
+        let crn = Network::new();
+        self.reaction_list(crn)?;
+        Ok(crn)
     }
 
     // grammar productions for recursive descent
-    fn reaction_list(&mut self) -> Result<(), ParseError> {
+    fn reaction_list(&mut self, crn : &mut Network) -> Result<(), ParseError> {
         println!("Deriving reaction_list");
-        self.reaction()?;
-        self.next_reaction()?;
+        let rxn = self.reaction(crn)?;
+        crn.add_reaction(rxn);
+        self.next_reaction(crn)?;
         Ok(())
     }
 
-    fn reaction(&mut self) -> Result<(), ParseError> {
+    fn reaction(&mut self, crn : &mut Network) -> Result<Reaction, ParseError> {
         println!("Deriving reaction");
-        
-        let left_cplx = self.complex()?;
+        let left = self.complex(crn)?;
         let y = self.yield_symbol()?;
-        let right_cplx = self.complex()?;
-//        let rxn = match y {
-//            Terminal::RightArrow => Reaction::forward(left_cplx, right_cplx),
-//            Terminal::LeftArrow => Reaction::forward(right_cplx, left_cplx),
-//            Terminal::LeftRightArrow => Reaction::reversible(left_cplx, right_cplx),
-//            Terminal::Equal => Reaction::reversible(left_cplx, right_cplx),
-//        };
-//        crn.add_reaction(rxn);
-        Ok(())
+        let right = self.complex(crn)?;
+        let out = match y {
+            Terminal::RightArrow => Ok(Reaction::forward(left, right)),
+            Terminal::LeftArrow => Ok(Reaction::forward(right, left)),
+            Terminal::LeftRightArrow => Ok(Reaction::reversible(left, right)),
+            Terminal::Equal => Ok(Reaction::reversible(left, right)),
+            _ => panic!("`yield_symbol()` returned terminal that was not an arrow."),
+        };
+        
+        out
     }
 
-    fn next_reaction(&mut self) -> Result<(), ParseError> {
+    fn next_reaction(&mut self, crn : &mut Network) -> Result<(), ParseError> {
         println!("Deriving next_reaction");
-        if self.advance_if_match(Terminal::SemiColon) {
-            let next = self.peek_token()?; 
+        if self.advance_if_match(Terminal::SemiColon) { 
+            if self.peek_if(|x| *x != Terminal::SemiColon) {
+                let rxn = self.reaction(crn)?;
+                crn.add_reaction(rxn);
+            } 
+            let next = self.peek_token()?;
             if next.is_some() {
-                self.reaction()?;
-                self.next_reaction()?;
+                self.next_reaction(crn)?;
             }
             Ok(())
         } else {
@@ -228,44 +229,49 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn complex(&mut self) -> Result<(), ParseError> {
+    fn complex(&mut self, crn : &mut Network) -> Result<Complex, ParseError> {
         println!("Deriving complex");
-//        let cplx = Complex::new();
-        self.monomial()?;
-        self.next_monomial()?;
-        Ok(())
+        let mut cplx = Complex::new();
+        self.monomial(crn, &mut cplx)?;
+        self.next_monomial(crn, &mut cplx)?;
+        Ok(cplx)
     }
 
-    fn next_monomial(&mut self) -> Result<(), ParseError> {
+    fn next_monomial(&mut self,crn : &mut Network, cplx : &mut Complex) -> Result<(), ParseError> {
         println!("Deriving next_monomial");
         if self.advance_if_match(Terminal::Plus) {
-            self.monomial()?;
-            self.next_monomial()?;
+            self.monomial(crn , cplx)?;
+            self.next_monomial(crn, cplx)?;
         }
         Ok(())
     }
 
-    fn monomial(&mut self) -> Result<(), ParseError> {
+    fn monomial(&mut self, crn: &mut Network,  cplx : &mut Complex) -> Result<(), ParseError> {
         println!("Deriving monomial");
-        if let Some(Terminal::Number(coef)) = self.peek_token()? {  
+        let coef = if self.peek_if(|x| x.is_number()) {
+            let Some(Terminal::Number(coef)) = self.pop_token()? else {panic!("Could't unwrap Number")}; 
             self.advance_if_match(Terminal::Star);
-        }
-        self.species()?;
+            coef
+        } else {
+            1
+        };
+        self.species(crn, cplx, coef)?;
         Ok(())
     }
 
-    fn species(&mut self) -> Result<(), ParseError> {
+    fn species(&mut self, crn: &mut Network, cplx : &mut Complex, coef : u64) -> Result<(), ParseError> {
         println!("Deriving species");
+        let maybe_token = self.peek_token()?;
         if self.peek_if(|x| x.is_identifier()) {
-            let token = self.pop_token()?;
-            //crn.register_species(token.attribute.unwrap());
+            let Some(Terminal::Identifier(sp)) = self.pop_token()? else { panic!("Couldn't unwrap Identifier!") };
+            crn.add_term_to(cplx, sp, coef);
             Ok(())
-        } else if self.advance_if_match(Terminal::LeftParen) {
-            self.complex()?;
-            if !self.advance_if_match(Terminal::RightParen) {
-                return Self::emit_error("Unmatched parentheses. Expected ')' but found 's'");
-            }
-            Ok(())
+//        } else if self.advance_if_match(Terminal::LeftParen) {
+//            self.complex()?;
+//            if !self.advance_if_match(Terminal::RightParen) {
+//                return Self::emit_error("Unmatched parentheses. Expected ')' but found 's'");
+//            }
+//            Ok(())
         } else {
             Self::emit_error("Factor Error.")
         }

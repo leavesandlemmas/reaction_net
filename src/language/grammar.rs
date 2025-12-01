@@ -37,10 +37,10 @@ impl Terminal {
         matches!(*self, Terminal::Identifier(_))
     }
 
-    pub fn get_number(self) -> Option<u64> {
+    pub fn get_number(self) -> u64 {
          match self {
-            Terminal::Number(n) => Some(n),
-            _ => None,
+            Terminal::Number(n) => n,
+            _ => panic!("Cannot get_number fr"),
         }    
     } 
     
