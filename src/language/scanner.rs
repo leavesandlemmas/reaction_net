@@ -145,12 +145,11 @@ impl<'a> Scanner<'a> {
             lexeme.push(c);
         }
         let maybe_number = lexeme.parse::<u64>();
-        match maybe_number {       
+        match maybe_number {
             Ok(n) => Terminal::Number(n),
             _ => Terminal::Identifier(lexeme),
-        } 
+        }
     }
-        
 }
 
 impl<'a> Iterator for Scanner<'a> {

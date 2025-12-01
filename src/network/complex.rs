@@ -13,8 +13,10 @@ impl Complex {
         }
     }
 
-    pub fn add_term(&mut self, id : SpeciesId, coef: StoichCoef) {
-        self.terms.entry(id).and_modify(|x| *x += coef).or_insert(coef);
+    pub fn add_term(&mut self, id: SpeciesId, coef: StoichCoef) {
+        self.terms
+            .entry(id)
+            .and_modify(|x| *x += coef)
+            .or_insert(coef);
     }
 }
-

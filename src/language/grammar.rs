@@ -28,22 +28,21 @@ pub enum Terminal {
 }
 
 impl Terminal {
-    
     pub fn is_number(&self) -> bool {
         matches!(*self, Terminal::Number(_))
-    } 
-    
+    }
+
     pub fn is_identifier(&self) -> bool {
         matches!(*self, Terminal::Identifier(_))
     }
 
     pub fn get_number(self) -> u64 {
-         match self {
+        match self {
             Terminal::Number(n) => n,
             _ => panic!("Cannot get_number fr"),
-        }    
-    } 
-    
+        }
+    }
+
     pub fn get_identifier(self) -> Option<String> {
         match self {
             Terminal::Identifier(s) => Some(s),
@@ -51,7 +50,6 @@ impl Terminal {
         }
     }
 }
-
 
 pub fn is_yield_symbol(s: &Terminal) -> bool {
     match s {

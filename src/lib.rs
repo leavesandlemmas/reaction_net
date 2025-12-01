@@ -5,10 +5,10 @@ use std::path::{Path, PathBuf};
 mod data;
 mod language;
 mod network;
-use network::Network;
 use language::grammar::Terminal;
 use language::parser::{Parser, SyntaxError};
 use language::scanner::{LexError, Scanner};
+use network::Network;
 
 pub struct Config {
     callname: String,
@@ -65,9 +65,8 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         println!("{USAGE}");
         return Ok(());
     }
-   
+
     let network = Network::new();
-    
 
     for file in config.files {
         let contents = fs::read_to_string(file)?;

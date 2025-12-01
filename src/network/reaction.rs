@@ -53,22 +53,19 @@ impl Reaction {
         }
     }
 
-    pub fn set_name(&mut self, name : String) {
+    pub fn set_name(&mut self, name: String) {
         self.name = Some(name);
     }
-    
+
     pub fn is_reversible(&self) -> bool {
         self.reversible
     }
 
-    
     pub fn get_reactants(&self) -> &Complex {
         &self.reactants
     }
-
 
     pub fn get_products(&self) -> &Complex {
         &self.products
     }
 }
-
