@@ -1,0 +1,2 @@
+// michaelis-menten kinetics
+E + S <-> ES -> E + P

@@ -1,9 +1,14 @@
 use std::error::Error;
+use std::ffi::OsStr;
 use std::fs;
-use std::path::PathBuf;
-
-mod scanner;
-use scanner::Scanner;
+use std::path::{Path, PathBuf};
+mod data;
+mod language;
+mod network;
+use network::Network;
+use language::grammar::Terminal;
+use language::parser::{Parser, SyntaxError};
+use language::scanner::{LexError, Scanner};
 
 pub struct Config {
     callname: String,
@@ -20,8 +25,14 @@ impl Config {
 
         for arg in args {
             if !is_option(&arg) {
-                files.push(arg.into());
-                continue;
+                let file = Path::new(&arg);
+                // skip files without extensions
+                if let Some(ext) = file.extension() {
+                    if valid_extension(ext) {
+                        files.push(file.to_path_buf());
+                        continue;
+                    }
+                }
             }
 
             if is_help(&arg) {
@@ -54,16 +65,18 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         println!("{USAGE}");
         return Ok(());
     }
+   
+    let network = Network::new();
+    
 
     for file in config.files {
         let contents = fs::read_to_string(file)?;
         println!("{contents}");
 
-        let scanner = Scanner::scan(contents.chars());
-        for token in scanner {
-            let s = token?;
-            println!("{s:?}");
-        }
+        let scanner = Scanner::scan(&contents);
+        let mut parser = Parser::new(scanner);
+        let crn = parser.parse()?;
+        println!("{crn:?}")
     }
 
     Ok(())
@@ -77,7 +90,12 @@ fn is_help(arg: &str) -> bool {
     arg == "--help" || arg == "-h"
 }
 
-static USAGE: &str = "reaction_net [options] <filename.crn>
+fn valid_extension(ext: &OsStr) -> bool {
+    let valid_exts = vec![OsStr::new("txt"), OsStr::new("rxn"), OsStr::new("crn")];
+    valid_exts.contains(&&ext)
+}
+
+static USAGE: &str = "reaction_net <filename.crn> [options]
 
 Options:
     --help                    Print usage. 
