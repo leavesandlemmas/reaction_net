@@ -61,11 +61,11 @@ impl Reaction {
         self.reversible
     }
 
-    pub fn get_reactants(&self) -> &Complex {
+    pub fn reactants(&self) -> &Complex {
         &self.reactants
     }
 
-    pub fn get_products(&self) -> &Complex {
+    pub fn products(&self) -> &Complex {
         &self.products
     }
 }

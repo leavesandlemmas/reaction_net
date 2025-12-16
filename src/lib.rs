@@ -2,13 +2,10 @@ use std::error::Error;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
-mod data;
-mod language;
-mod network;
-use language::grammar::Terminal;
-use language::parser::{Parser, SyntaxError};
-use language::scanner::{LexError, Scanner};
-use network::Network;
+
+mod parser;
+mod ast;
+
 
 pub struct Config {
     callname: String,
@@ -48,10 +45,6 @@ impl Config {
             return Err("Unknown Argument");
         }
 
-        if files.len() == 0 {
-            return Err("No files to parse...");
-        }
-
         Ok(Config {
             callname,
             files,
@@ -66,15 +59,14 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let network = Network::new();
+    if config.files.len() == 0 {
+        return Err("No files to parse...".into());
+    }
 
     for file in config.files {
         let contents = fs::read_to_string(file)?;
         println!("{contents}");
-
-        let scanner = Scanner::scan(&contents);
-        let mut parser = Parser::new(scanner);
-        let crn = parser.parse()?;
+        let crn = parser::parse(&contents)?;
         println!("{crn:?}")
     }
 

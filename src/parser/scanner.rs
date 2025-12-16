@@ -4,7 +4,7 @@ use std::fmt;
 use std::iter::Peekable;
 use std::str::Chars;
 // import terminal symbols
-use crate::language::grammar::Terminal;
+use super::grammar::Terminal;
 
 pub type LineNum = u64;
 
