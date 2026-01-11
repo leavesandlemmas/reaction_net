@@ -210,3 +210,12 @@ impl<'a> Iterator for Scanner<'a> {
         None
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    
+
+}
