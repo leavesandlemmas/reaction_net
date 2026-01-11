@@ -1,5 +1,3 @@
-use std::error::Error;
-
 // Terminal Symbols
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Terminal {

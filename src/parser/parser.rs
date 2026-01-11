@@ -2,12 +2,12 @@
 use std::error::Error;
 use std::fmt;
 // import grammar symbols
-use crate::language::grammar;
-use crate::language::grammar::Terminal;
-use crate::language::scanner::{LexError, LineNum, Scanner};
+use super::grammar;
+use super::grammar::Terminal;
+use super::scanner::{LexError, LineNum, Scanner};
 
-// import reaction network
-use crate::network::{Complex, Network, Reaction};
+// import reaction network ast
+use crate::ast;
 
 // Errors for syntax analysis
 #[derive(Debug)]
@@ -17,13 +17,13 @@ pub struct SyntaxError {
 }
 
 impl SyntaxError {
-    pub fn new<S>(message: S) -> Self
+    pub fn new<S>(message: S, line : LineNum) -> Self
     where
         S: Into<String> + AsRef<str>,
     {
         SyntaxError {
             message: message.into(),
-            line: 0,
+            line,
         }
     }
 }
@@ -158,93 +158,89 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn emit_error<S, E>(msg: S) -> Result<E, ParseError>
+    fn emit_error<S, E>(&self, msg: S) -> Result<E, ParseError>
     where
         S: Into<String> + AsRef<str>,
     {
-        let e = SyntaxError::new(msg);
+        let e = SyntaxError::new(msg, self.scanner.get_line_num());
         Err(ParseError::Syntax(e))
     }
 
-    // build CRN from recursiving descent parsing
-    pub fn parse(&mut self) -> Result<Network, ParseError> {
-        let crn = Network::new();
-        self.reaction_list(crn)?;
-        Ok(crn)
+    // build AST for CRN from recursiving descent parsing
+    pub fn parse(&mut self) -> Result<ast::Network, ParseError> {
+        let network = self.reaction_list()?;
+        Ok(network)
     }
 
     // grammar productions for recursive descent
-    fn reaction_list(&mut self, crn: &mut Network) -> Result<(), ParseError> {
-        println!("Deriving reaction_list");
-        let rxn = self.reaction(crn)?;
-        crn.add_reaction(rxn);
-        self.next_reaction(crn)?;
-        Ok(())
+    fn reaction_list(&mut self) -> Result<ast::Network, ParseError> {
+        let mut network = ast::Network::new();
+        let rxn = self.reaction()?;
+        network.add_reaction(rxn);
+        let network = self.next_reaction(network)?;
+        Ok(network)
     }
 
-    fn reaction(&mut self, crn: &mut Network) -> Result<Reaction, ParseError> {
-        println!("Deriving reaction");
-        let left = self.complex(crn)?;
-        let y = self.yield_symbol()?;
-        let right = self.complex(crn)?;
-        let out = match y {
-            Terminal::RightArrow => Ok(Reaction::forward(left, right)),
-            Terminal::LeftArrow => Ok(Reaction::forward(right, left)),
-            Terminal::LeftRightArrow => Ok(Reaction::reversible(left, right)),
-            Terminal::Equal => Ok(Reaction::reversible(left, right)),
-            _ => panic!("`yield_symbol()` returned terminal that was not an arrow."),
-        };
+    fn reaction(&mut self) -> Result<ast::Reaction, ParseError> {
 
-        out
+        let left = self.complex()?;
+        let arr = self.yield_symbol()?;
+        let right = self.complex()?;
+        let rxn = ast::Reaction::new(None, arr, left, right);
+        Ok(rxn)
     }
 
-    fn next_reaction(&mut self, crn: &mut Network) -> Result<(), ParseError> {
-        println!("Deriving next_reaction");
+    fn next_reaction(&mut self, mut network : ast::Network) -> Result<ast::Network, ParseError> {
         if self.advance_if_match(Terminal::SemiColon) {
             if self.peek_if(|x| *x != Terminal::SemiColon) {
-                let rxn = self.reaction(crn)?;
-                crn.add_reaction(rxn);
+                let rxn = self.reaction()?;
+                network.add_reaction(rxn);
             }
             let next = self.peek_token()?;
             if next.is_some() {
-                self.next_reaction(crn)?;
+                return self.next_reaction(network);
             }
-            Ok(())
+            Ok(network)
         } else {
             let msg = format!("Expected newline or ';' but found unexpected");
-            Self::emit_error(msg)
+            self.emit_error(msg)
         }
     }
 
-    fn yield_symbol(&mut self) -> Result<Terminal, ParseError> {
-        println!("Deriving yield");
+    fn yield_symbol(&mut self) -> Result<ast::Arrow, ParseError> {
         let maybe_token = self.next_if(grammar::is_yield_symbol)?;
         if let Some(s) = maybe_token {
-            Ok(s)
+            let arr = match s {
+            Terminal::RightArrow => ast::Arrow::Right,
+            Terminal::LeftArrow => ast::Arrow::Left,
+            Terminal::LeftRightArrow => ast::Arrow::Reversible,
+            Terminal::Equal => ast::Arrow::Reversible,
+            _ => panic!("`yield_symbol()` returned terminal that was not an arrow."),
+            };
+            Ok(arr)
         } else {
-            Self::emit_error("Expected yield symbol '->', '<-', '<->' or '='")
+            self.emit_error("Expected yield symbol '->', '<-', '<->' or '='")
         }
     }
 
-    fn complex(&mut self, crn: &mut Network) -> Result<Complex, ParseError> {
-        println!("Deriving complex");
-        let mut cplx = Complex::new();
-        self.monomial(crn, &mut cplx)?;
-        self.next_monomial(crn, &mut cplx)?;
+    fn complex(&mut self) -> Result<ast::Complex, ParseError> {
+        let mut cplx = ast::Complex::new();
+        let term = self.monomial()?;
+        cplx.add_term(term);
+        let cplx = self.next_monomial(cplx)?;
         Ok(cplx)
     }
 
-    fn next_monomial(&mut self, crn: &mut Network, cplx: &mut Complex) -> Result<(), ParseError> {
-        println!("Deriving next_monomial");
+    fn next_monomial(&mut self, mut cplx: ast::Complex) -> Result<ast::Complex, ParseError> {
         if self.advance_if_match(Terminal::Plus) {
-            self.monomial(crn, cplx)?;
-            self.next_monomial(crn, cplx)?;
+            let term = self.monomial()?;
+            cplx.add_term(term);
+            return self.next_monomial(cplx);
         }
-        Ok(())
+        Ok(cplx)
     }
 
-    fn monomial(&mut self, crn: &mut Network, cplx: &mut Complex) -> Result<(), ParseError> {
-        println!("Deriving monomial");
+    fn monomial(&mut self) -> Result<(String, u64), ParseError> {
         let coef = if self.peek_if(|x| x.is_number()) {
             let Some(Terminal::Number(coef)) = self.pop_token()? else {
                 panic!("Could't unwrap Number")
@@ -254,24 +250,17 @@ impl<'a> Parser<'a> {
         } else {
             1
         };
-        self.species(crn, cplx, coef)?;
-        Ok(())
+        let species = self.species()?;
+        Ok((species, coef))
     }
 
-    fn species(
-        &mut self,
-        crn: &mut Network,
-        cplx: &mut Complex,
-        coef: u64,
-    ) -> Result<(), ParseError> {
-        println!("Deriving species");
+    fn species(&mut self) -> Result<String, ParseError> {
         let maybe_token = self.peek_token()?;
         if self.peek_if(|x| x.is_identifier()) {
             let Some(Terminal::Identifier(sp)) = self.pop_token()? else {
                 panic!("Couldn't unwrap Identifier!")
             };
-            crn.add_term_to(cplx, sp, coef);
-            Ok(())
+            Ok(sp)
         //        } else if self.advance_if_match(Terminal::LeftParen) {
         //            self.complex()?;
         //            if !self.advance_if_match(Terminal::RightParen) {
@@ -279,7 +268,7 @@ impl<'a> Parser<'a> {
         //            }
         //            Ok(())
         } else {
-            Self::emit_error("Factor Error.")
+            self.emit_error("Factor Error.")
         }
     }
 }
