@@ -1,15 +1,14 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Complex {
-    terms : Vec<(String, u64)>,
+    terms: Vec<(String, u64)>,
 }
-
 
 impl Complex {
     pub fn new() -> Self {
         Self { terms: Vec::new() }
     }
 
-    pub fn add_term(&mut self, term: (String,  u64)) {
+    pub fn add_term(&mut self, term: (String, u64)) {
         self.terms.push(term);
     }
 }
@@ -23,40 +22,36 @@ pub enum Arrow {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Reaction {
-    name: Option<String>,
-    arrow: Arrow,
-    reactants: Complex,
-    products: Complex,
+    pub name: Option<String>,
+    pub arrow: Arrow,
+    pub left: Complex,
+    pub right: Complex,
 }
 
-
 impl Reaction {
-    pub fn new(
-        name: Option<String>,
-        arrow: Arrow,
-        reactants: Complex,
-        products: Complex,
-    ) -> Self {
+    pub fn new(name: Option<String>, arrow: Arrow, left: Complex, right: Complex) -> Self {
         Self {
             name,
             arrow,
-            reactants,
-            products,
+            left,
+            right,
         }
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Network {
-    reactions : Vec<Reaction>,
+    reactions: Vec<Reaction>,
 }
 
 impl Network {
     pub fn new() -> Self {
-        Self {reactions : Vec::new()}
+        Self {
+            reactions: Vec::new(),
+        }
     }
 
-    pub fn add_reaction(&mut self, rxn : Reaction) {
+    pub fn add_reaction(&mut self, rxn: Reaction) {
         self.reactions.push(rxn);
     }
 }

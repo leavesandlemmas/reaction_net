@@ -1,15 +1,20 @@
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::rc::Rc;
+use std::ops::Index;
+
 // data structure for labeling a set with indices
+pub type Registry<T> = RegistryImpl<T>; // owns T (and copies)
+pub type RcRegistry<T> = RegistryImpl<Rc<T>>; // doesnt own T (copies poitners)
+
 // used for symbol table and species registry
 #[derive(Debug)]
-pub struct Registry<T>
+pub struct RegistryImpl<T>
 where
     T: Eq + Hash + Clone,
 {
     index_map: HashMap<T, usize>,
-    symbols: Vec<T>, // ??? make std::rc::Rc<String> instead of String ???
-                     //attributes: Vec<T>,
+    symbols: Vec<T>,
 }
 
 impl<T: Eq + Hash + Clone> Registry<T> {
@@ -17,12 +22,10 @@ impl<T: Eq + Hash + Clone> Registry<T> {
         Self {
             index_map: HashMap::new(),
             symbols: Vec::new(),
-            //attributes : Vec::new(),
         }
     }
 
-    pub fn register(&mut self, symbol: T) -> usize
-where {
+    pub fn register(&mut self, symbol: T) -> usize {
         if let Some(&id) = self.index_map.get(&symbol) {
             return id;
         }
@@ -35,7 +38,15 @@ where {
         new_id
     }
 
-    pub fn get_symbol(&self, idx: usize) -> &T {
+    pub fn get(&self, idx: usize) -> Option<&T> {
+        self.symbols.get(idx)
+    }
+}
+
+impl<T : Eq + Hash + Clone> Index<usize> for Registry<T> {
+    type Output = T;
+
+    fn index(&self, idx : usize) -> &Self::Output {
         &self.symbols[idx]
     }
 }

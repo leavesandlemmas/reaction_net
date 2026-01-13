@@ -72,6 +72,8 @@ impl From<SyntaxError> for ParseError {
 pub struct Parser<'a> {
     scanner: Scanner<'a>,
     lookahead: Option<Terminal>,
+    
+
 }
 
 type Maybe<T> = Result<Option<T>, ParseError>;
