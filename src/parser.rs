@@ -5,6 +5,7 @@ use std::error::Error;
 mod parser;
 mod scanner;
 mod grammar;
+pub mod source;
 
 // crate imports
 use crate::ast;

@@ -216,6 +216,10 @@ impl<'a> Iterator for Scanner<'a> {
 mod tests {
     use super::*;
 
+    #[test]
+    fn scan_input() {
+        
+    }
     
 
 }

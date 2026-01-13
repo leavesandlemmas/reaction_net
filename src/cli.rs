@@ -3,7 +3,7 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::parser; 
+use crate::parser::source; 
 pub struct Config {
     callname: String,
     files: Vec<PathBuf>,
@@ -48,6 +48,8 @@ impl Config {
             print_usage,
         })
     }
+
+
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
@@ -60,12 +62,14 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         return Err("No files to parse...".into());
     }
 
-    for file in config.files {
-        let contents = fs::read_to_string(file)?;
-        println!("{contents}");
-        let crn = parser::parse(&contents)?;
-        println!("{crn:?}")
-    }
+    let files = source::SourceFileIterator::new(config.files);
+    
+    // for file in config.files {
+    //     let contents = fs::read_to_string(file)?;
+    //     println!("{contents}");
+    //     let crn = parser::parse(&contents)?;
+    //     println!("{crn:?}")
+    // }
 
     Ok(())
 }
