@@ -16,17 +16,17 @@ impl<T: AddAssign + Clone> DokMatrix<T> {
         Self { data, dim }
     }
 
-    pub fn insert(&mut self, i: usize, j: usize, value: T) {
-        let key = (i, j);
-        self.dim.update(i, j);
+    pub fn insert(&mut self, row: usize, col: usize, value: T) {
+        let key = (row, col);
+        self.dim.update(row, col);
         self.data
             .entry(key)
             .and_modify(|e| *e += value.clone())
             .or_insert(value);
     }
 
-    pub fn get(&self, i: usize, j: usize) -> Option<&T> {
-        let key = (i, j);
+    pub fn get(&self, row: usize, col: usize) -> Option<&T> {
+        let key = (row, col);
         self.data.get(&key)
     }
 
@@ -59,11 +59,11 @@ impl<T: AddAssign + Clone> CooMatrix<T> {
         }
     }
 
-    pub fn insert(&mut self, i: usize, j: usize, value: T) {
-        self.dim.update(i, j);
+    pub fn insert(&mut self, row: usize, col: usize, value: T) {
+        self.dim.update(row, col);
         self.values.push(value);
-        self.row_index.push(i);
-        self.col_index.push(j);
+        self.row_index.push(row);
+        self.col_index.push(col);
         self.canonical = false;
         self.sorted = false;
     }
@@ -174,9 +174,15 @@ pub struct CsrMatrix<T> {
 }
 
 impl<T: AddAssign + Clone> CsrMatrix<T> {
-    // pub fn from_coo(mut matrix: CooMatrix<T>) -> Self {
-
-    // }
+    pub fn new() -> Self {
+        Self {
+            values: Vec::new(),
+            row_slice: Vec::new(),
+            col_index: Vec::new(),
+            dim : Dim::new(),
+        }
+    }
+    // pub fn add_row(&mut self, col : usize, value :  Vec<usize> )
 }
 
 impl<T: AddAssign + Clone> From<CooMatrix<T>> for CsrMatrix<T> {
@@ -203,6 +209,51 @@ impl<T: AddAssign + Clone> From<CooMatrix<T>> for CsrMatrix<T> {
         }
     }
 }
+
+pub struct CscMatrix<T> {
+    values: Vec<T>,
+    col_slice: Vec<usize>,
+    row_index: Vec<usize>,
+    dim: Dim,
+}
+
+impl<T: AddAssign + Clone> CscMatrix<T> {
+    pub fn new() -> Self{
+        Self {
+            values: Vec::new(),
+            col_slice: Vec::new(),
+            row_index: Vec::new(),
+            dim : Dim::new(),
+        }
+    }
+}
+
+impl<T: AddAssign + Clone> From<CooMatrix<T>> for CscMatrix<T> {
+    fn from(mut matrix: CooMatrix<T>) -> Self {
+        matrix.canonical_format();
+        let mut col_slice: Vec<usize> = Vec::with_capacity(matrix.dim.col() + 1);
+
+        let mut col: usize = 0;
+        col_slice.push(col);
+        for k in 0..matrix.nnz() {
+            while col != matrix.col_index[k] {
+                col_slice.push(k);
+                col += 1;
+            }
+        }
+
+        col_slice.push(matrix.nnz());
+
+        Self {
+            values: matrix.values,
+            col_slice,
+            row_index: matrix.row_index,
+            dim: matrix.dim,
+        }
+    }
+
+}
+
 struct Dim {
     row: usize,
     col: usize,
@@ -221,16 +272,15 @@ impl Dim {
         self.col
     }
 
-    pub fn update(&mut self, i: usize, j: usize) {
-        self.row = self.row.max(i + 1);
-        self.col = self.col.max(j + 1);
+    pub fn update(&mut self, row: usize, col: usize) {
+        self.row = self.row.max(row + 1);
+        self.col = self.col.max(col + 1);
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::error::Error;
 
     #[test]
     fn test_dok_matrix() {
@@ -297,5 +347,26 @@ mod tests {
         assert_eq!(mat.values[mat.row_slice[0]..mat.row_slice[1]], vec![2]);
         assert_eq!(mat.values[mat.row_slice[2]..mat.row_slice[3]], vec![]);
         assert_eq!(mat.values[mat.row_slice[4]..mat.row_slice[5]], vec![2]);
+    }
+
+    #[test]
+    fn test_csc_matrix() {
+        let mut mat: CooMatrix<i64> = CooMatrix::new();
+        mat.insert(0, 0, -1);
+        mat.insert(1, 0, 1);
+        mat.insert(4, 5, 2);
+        mat.insert(0, 0, 3); // duplicate entry
+        mat.insert(3, 2, 4);
+        mat.insert(1, 0, 5); // duplicate entry
+
+        // check sorting
+        let mat: CscMatrix<i64> = mat.into();
+        assert_eq!(mat.values, vec![2, 6, 4, 2]);
+        assert_eq!(mat.col_slice, vec![0, 2, 2, 3, 4]);
+        assert_eq!(mat.row_index, vec![0, 1, 3, 4]);
+
+        // assert_eq!(mat.values[mat.col_slice[0]..mat.row_slice[1]], vec![2]);
+        // assert_eq!(mat.values[mat.col_slice[2]..mat.row_slice[3]], vec![]);
+        // assert_eq!(mat.values[mat.row_slice[4]..mat.row_slice[5]], vec![2]);
     }
 }

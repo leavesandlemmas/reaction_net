@@ -1,18 +1,20 @@
+use std::io;
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
-
-use crate::parser::source; 
+// use crate::parse;
+use crate::source::SourceIterator;
+use crate::parser::Parser;
+use crate::scanner::Scanner;
 pub struct Config {
-    callname: String,
     files: Vec<PathBuf>,
     print_usage: bool,
 }
 
 impl Config {
     pub fn build(mut args: impl Iterator<Item = String>) -> Result<Config, &'static str> {
-        let callname = args.next().expect("No callname found...");
+        let _callname = args.next();
 
         let mut files: Vec<PathBuf> = Vec::new();
         let mut print_usage = false;
@@ -43,7 +45,6 @@ impl Config {
         }
 
         Ok(Config {
-            callname,
             files,
             print_usage,
         })
@@ -62,13 +63,37 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         return Err("No files to parse...".into());
     }
 
-    let files = source::SourceFileIterator::new(config.files);
-    
+    let char_stream = SourceIterator::new(config.files);
+    for ch in char_stream {
+        let c = ch ?; 
+        println!("{c}")
+    }
+    // let chars = maybe_chars?;
+
+    // let tokens = Scanner::new(chars.into_iter());
+     
+    // println!("{cs:?}");
+    // let char_stream = config.files
+    //     .iter()
+    //     .flat_map(
+    //         |x| {
+    //             let maybe_contents = fs::read_to_string(x).into_iter().map(|x| x.chars());
+
+    //             maybe_contents
+              
+    //         }
+    //     );
+    // for maybe_token in tokens {
+    //     let t = maybe_token?;
+    //     println!("{t:?}")
+    // }
     // for file in config.files {
     //     let contents = fs::read_to_string(file)?;
     //     println!("{contents}");
-    //     let crn = parser::parse(&contents)?;
-    //     println!("{crn:?}")
+    //     let mtokens : Result<Vec<_>, _> = Scanner::scan(&contents).collect();
+    //     let tokens = mtokens?;
+    //     println!("{tokens:?}");
+    //     // parser 
     // }
 
     Ok(())
