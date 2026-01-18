@@ -41,12 +41,7 @@ impl<'lex> Lexer<'lex> {
 
     // next character
     fn advance(&mut self) -> Option<char> {
-        if let Some(ch) = self.characters.next() {
-            self.lexeme.add_char(ch);
-            Some(ch)
-        } else {
-            None
-        }
+        self.characters.next()
     }
 
     // next character
