@@ -1,69 +1,51 @@
 // import grammar symbols
-use super::grammar;
 use super::grammar::Terminal;
 //use super::error::SyntaxError;
-use super::lexer::Lexer;
 
 //use crate::registry::Registry;
 //use crate::matrix::CscMatrix;
 
 
 // Parser struct contains syntax analysis logic
-pub struct Parser
+pub struct Parser<I> 
+    where
+I : Iterator<Item = Terminal>
 {
-    lexer : Lexer,
+    tokens : Peekable<I>,
 }
 
-impl Parser
+impl<I> Parser<I> 
+    where
+I : Iterator<Item = Terminal>
 {
 
-    pub fn new() -> Self {
-        Self { }
+    pub fn new(tokens : I) -> Self {
+        Self { tokens : tokens.peekable() }
     }
 
     // actions for token stream
     // advance to next character
     fn advance(&mut self) -> Option<Terminal> {
-        // check lookahead buffer first
-        if let Some(token) = self.lookahead.take() {
-            return Ok(Some(token));
-        }
-
-        // pop next token and handle lex error
-        match self.tokens.next() {
-            Some(Ok(token)) => Ok(Some(token)),
-            Some(Err(e)) => Err(ParseError::Lex(e)),
-            None => Ok(None),
-        }
+        self.tokens.next()
     }
+
+    fn advance_if_eq(&mut self, t : Terminal) -> Option<Terminal> {
+        self.tokens.next_if_eq(&t)
+    } 
 
     // look at next character without consuming
     fn peek(&mut self) -> Option<&Terminal> {
-        // check buffer
-        if self.lookahead.is_some() {
-            return Ok(self.lookahead.as_ref());
-        }
-        // if buffer is none, then pop and put into buffer
-        // handling errors
-        match self.tokens.next() {
-            Some(Ok(token)) => {
-                self.lookahead = Some(token);
-                Ok(self.lookahead.as_ref())
-            }
-            Some(Err(e)) => Err(ParseError::Lex(e)),
-            None => Ok(None),
-        }
+        self.tokens.peek()
     }
 
     // build AST for CRN from recursiving descent parsing
-    pub fn parse(&mut self, I) -> Result<(), ParseError> {
+    pub fn parse(&mut self) -> Result<(), ParseError> {
         self.reaction_list()?;
         Ok(())
     }
 
     // grammar productions for recursive descent
     fn reaction_list(&mut self) -> Result<(), ParseError> {
-    
         self.reaction()?;
         self.next_reaction()?;
         Ok(())
@@ -78,7 +60,7 @@ impl Parser
     }
 
     fn next_reaction(&mut self) -> Result<(), ParseError> {
-        if self.advance_if_match(Terminal::SemiColon) {
+        if self.advance_if_eq(Terminal::SemiColon) {
             if self.peek_if(|x| *x != Terminal::SemiColon) {
                 let rxn = self.reaction()?;
             }

@@ -1,6 +1,6 @@
 // Terminal Symbols
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum Terminal<'lex> {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Terminal {
     LeftParen,
     RightParen,
     LeftBrace,
@@ -23,28 +23,29 @@ pub enum Terminal<'lex> {
     Comma,
     Where,
     Newline,
-    EndOfFile,  
-    Identifier(&'lex str),
+    EOF,  
+    Identifier(String),
     Number(i64),
 }
 
-impl<'lex> Terminal<'lex> {
+impl Terminal {
+    
     pub fn is_number(&self) -> bool {
-        matches!(*self, Terminal::Number(_))
-    }
-
-    pub fn is_identifier(&self) -> bool {
-        matches!(*self, Terminal::Identifier(_))
+        matches!(self, Terminal::Number(_))   
     }
     
-}
+    pub fn is_identifier(&self) -> bool {
+        matches!(self, Terminal::Identifier(_))   
+    }
 
-pub fn is_yield_symbol<'lex>(s: &'lex Terminal) -> bool {
-    match s {
-        Terminal::RightArrow => true,
-        Terminal::LeftArrow => true,
-        Terminal::LeftRightArrow => true,
-        Terminal::Equal => true,
-        _ => false,
+    pub fn is_yield_symbol (&self ) -> bool {
+        match self {
+            Terminal::RightArrow => true,
+            Terminal::LeftArrow => true,
+            Terminal::LeftRightArrow => true,
+            Terminal::Equal => true,
+            _ => false,
+        }
     }
 }
+

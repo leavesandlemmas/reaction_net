@@ -63,11 +63,9 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     }
 
     let source_files = load_source_files(&config.files)?;
-    for source in source_files {
-        let mut lexer = Lexer::new(source.content());
-        while let Some(t) = lexer.pop() {
-            println!("{t:?}");
-        }
+    let tokens = source_files.iter().flat_map(|f| Lexer::new(f.content().chars()));    
+    for token in tokens {
+            println!("{token:?}");
     }
     //parse(source_files.get());
 
