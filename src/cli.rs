@@ -3,10 +3,9 @@ use std::error::Error;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
-// use crate::parse;
-use crate::source::SourceIterator;
-use crate::parser::Parser;
-use crate::scanner::Scanner;
+use crate::source::load_source_files;
+use crate::lexer::Lexer;
+
 pub struct Config {
     files: Vec<PathBuf>,
     print_usage: bool,
@@ -63,38 +62,14 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         return Err("No files to parse...".into());
     }
 
-    let char_stream = SourceIterator::new(config.files);
-    for ch in char_stream {
-        let c = ch ?; 
-        println!("{c}")
+    let source_files = load_source_files(&config.files)?;
+    for source in source_files {
+        let mut lexer = Lexer::new(source.content());
+        while let Some(t) = lexer.pop() {
+            println!("{t:?}");
+        }
     }
-    // let chars = maybe_chars?;
-
-    // let tokens = Scanner::new(chars.into_iter());
-     
-    // println!("{cs:?}");
-    // let char_stream = config.files
-    //     .iter()
-    //     .flat_map(
-    //         |x| {
-    //             let maybe_contents = fs::read_to_string(x).into_iter().map(|x| x.chars());
-
-    //             maybe_contents
-              
-    //         }
-    //     );
-    // for maybe_token in tokens {
-    //     let t = maybe_token?;
-    //     println!("{t:?}")
-    // }
-    // for file in config.files {
-    //     let contents = fs::read_to_string(file)?;
-    //     println!("{contents}");
-    //     let mtokens : Result<Vec<_>, _> = Scanner::scan(&contents).collect();
-    //     let tokens = mtokens?;
-    //     println!("{tokens:?}");
-    //     // parser 
-    // }
+    //parse(source_files.get());
 
     Ok(())
 }

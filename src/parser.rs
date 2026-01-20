@@ -1,40 +1,29 @@
 // import grammar symbols
 use super::grammar;
 use super::grammar::Terminal;
-use super::error::{ParseError,  SyntaxError};
-use super::scanner::Scanner;
+//use super::error::SyntaxError;
+use super::lexer::Lexer;
 
-use crate::registry::Registry;
-use crate::matrix::CscMatrix;
+//use crate::registry::Registry;
+//use crate::matrix::CscMatrix;
+
+
 // Parser struct contains syntax analysis logic
-pub struct Parser<I>
-where
-    I : Iterator<Item = Terminal>,
+pub struct Parser
 {
-    tokens: I,
-    lookahead: Option<Terminal>,
-    species: Registry<String>,
-    complex: CscMatrix<i64>,
+    lexer : Lexer,
 }
 
-type Maybe<T> = Result<Option<T>, ParseError>;
-
-impl<I> Parser<I>
-where
-    I : Iterator<Item = Terminal>,
+impl Parser
 {
-    pub fn new(tokens :I) -> Self {
-        Self {
-            tokens,
-            lookahead: None,
-            species: Registry::new(),
-            complex: CscMatrix::new(),
-        }
+
+    pub fn new() -> Self {
+        Self { }
     }
 
     // actions for token stream
     // advance to next character
-    fn pop_token(&mut self) -> Maybe<Terminal> {
+    fn advance(&mut self) -> Option<Terminal> {
         // check lookahead buffer first
         if let Some(token) = self.lookahead.take() {
             return Ok(Some(token));
@@ -49,7 +38,7 @@ where
     }
 
     // look at next character without consuming
-    fn peek_token(&mut self) -> Maybe<&Terminal> {
+    fn peek(&mut self) -> Option<&Terminal> {
         // check buffer
         if self.lookahead.is_some() {
             return Ok(self.lookahead.as_ref());
@@ -66,55 +55,8 @@ where
         }
     }
 
-    // advance to next character if next token satisfies predicate
-    fn next_if(&mut self, predicate: impl FnOnce(&Terminal) -> bool) -> Maybe<Terminal> {
-        if self.peek_if(predicate) {
-            self.pop_token()
-        } else {
-            Ok(None)
-        }
-    }
-
-    // check if next token satisfies predicate
-    fn peek_if(&mut self, predicate: impl FnOnce(&Terminal) -> bool) -> bool {
-        if let Ok(Some(token)) = self.peek_token() {
-            predicate(&token)
-        } else {
-            false
-        }
-    }
-
-    // check if next token matches without consuming
-    fn peek_if_match(&mut self, symbol: Terminal) -> bool {
-        self.peek_if(|x: &Terminal| *x == symbol)
-    }
-
-    // check if next token matches; consume if yes
-    fn next_if_match(&mut self, symbol: Terminal) -> Maybe<Terminal> {
-        self.next_if(|x: &Terminal| *x == symbol)
-    }
-
-    // check if next token matches; consume if yes
-    fn advance_if_match(&mut self, symbol: Terminal) -> bool {
-        let matched = self.peek_if_match(symbol);
-        if matched {
-            let _ = self.pop_token();
-            true
-        } else {
-            false
-        }
-    }
-
-    fn emit_error<S, E>(&self, msg: S) -> Result<E, ParseError>
-    where
-        S: Into<String> + AsRef<str>,
-    {
-        let e = SyntaxError::new(msg, self.tokens.get_line_num());
-        Err(ParseError::Syntax(e))
-    }
-
     // build AST for CRN from recursiving descent parsing
-    pub fn parse(&mut self) -> Result<(), ParseError> {
+    pub fn parse(&mut self, I) -> Result<(), ParseError> {
         self.reaction_list()?;
         Ok(())
     }
@@ -154,16 +96,10 @@ where
     fn yield_symbol(&mut self) -> Result<(), ParseError> {
         let maybe_token = self.next_if(grammar::is_yield_symbol)?;
         if let Some(s) = maybe_token {
-            // let arr = match s {
-            // Terminal::RightArrow => ast::Arrow::Right,
-            // Terminal::LeftArrow => ast::Arrow::Left,
-            // Terminal::LeftRightArrow => ast::Arrow::Reversible,
-            // Terminal::Equal => ast::Arrow::Reversible,
-            // _ => panic!("`yield_symbol()` returned terminal that was not an arrow."),
-            // };
+          
             Ok(())
         } else {
-            self.emit_error("Expected yield symbol '->', '<-', '<->' or '='")
+            panic!("Expected yield symbol '->', '<-', '<->' or '='")
         }
     }
 
@@ -202,14 +138,8 @@ where
                 panic!("Couldn't unwrap Identifier!")
             };
             Ok(())
-        //        } else if self.advance_if_match(Terminal::LeftParen) {
-        //            self.complex()?;
-        //            if !self.advance_if_match(Terminal::RightParen) {
-        //                return Self::emit_error("Unmatched parentheses. Expected ')' but found 's'");
-        //            }
-        //            Ok(())
         } else {
-            self.emit_error("Factor Error.")
+            panic!("Factor Error.")
         }
     }
 }
@@ -217,5 +147,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use crate::lexer::Lexer;
 
+    
 }

@@ -1,92 +1,79 @@
-use std::fs::File;
+use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-// manages source code
-pub struct Source {
-    files: Vec<PathBuf>,
-    reader: 
-    current_column : usize, 
-    current_line : usize, 
-    current_index : usize,
-    contents: String,
+#[derive(Debug, Clone)]
+pub struct SourceFile {
+    path: PathBuf,
+    content: String,
 }
 
-impl SourceIterator<'source> {
-    pub fn new(files: Vec<PathBuf>) -> Self {
-       
-        Self {
-            files,
-            reader 
-            current_file : 0,
-            contents : String::new(),
-        }    
-    }
-
-    pub fn open_next_file(&mut self) -> io::Result<bool> {
-        if self.current_file >= self.files.len() {
-            return Ok(false);
-        }
-
-        let file = File::open(&self.files[self.current_index])?;
-        f.read_to_string(self.contents)?;
-        self.current_index += 1;
-        Ok(true)
-    }
-
-    pub fn get_source(&'source self) -> &'source str {
-        &self.contents
+impl SourceFile {
+    
+    pub fn load<P : AsRef<Path>>( path : P) -> io::Result<Self> {
+        let path = path.as_ref().to_path_buf();        
+        let content = fs::read_to_string(&path)?;
+        Ok(Self {path, content})
     }
     
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+
 }
 
 
-impl Iterator for SourceIterator {
-    type Item = std::io::Result<char>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if self.current_reader.is_none() {
-                match self.open_next_file() {
-                    Ok(true) => {},
-                    Ok(false) => return None,
-                    Err(e) => return Some(Err(e)),
-                }
-            }
-
-            let reader = self.current_reader.as_mut().unwrap();
-
-            // read one byte 
-            let mut byte = [0u8; 1];
-            match reader.read(&mut byte) {
-                Ok(0) => {
-                    // EOF on current file, move to next
-
-                    self.current_reader = None;
-                    continue;
-                            
-                }
-                Ok(_) => {
-                    self.buffer[self.buffer_len] = byte[0];
-                    self.buffer_len += 1;
-
-                    match std::str::from_utf8(&self.buffer[..self.buffer_len]) {
-                        Ok(s) => {
-                            let ch = s.chars().next().unwrap();
-                            self.buffer_len = 0;
-                            return Some(Ok(ch));
-                        }
-                        Err(e) if self.buffer_len < 4 && e.error_len().is_none() => {
-                            continue;
-                        }
-                        Err(_) => {
-                            self.buffer_len = 0;
-                            return Some(Self::invalid_utf8());
-                        }
-                    }
-                }
-                Err(e) => return Some(Err(e)),
-            }
+pub fn load_source_files(paths : &[impl AsRef<Path>]) -> Result<Vec<SourceFile>, SourceFileErrors> {
+    let mut sources = Vec::new();
+    let mut errors = Vec::new();
+    
+    for path in paths {
+        match SourceFile::load(path) {
+            Ok(src) => sources.push(src),
+            Err(e) => errors.push(SourceFileError(path.as_ref().to_path_buf(), e)),
         }
     }
+    
+    if errors.is_empty() {
+        Ok(sources)
+    } else {
+        Err(SourceFileErrors {errors } )
+    }
 }
+
+
+#[derive(Debug)]
+pub struct SourceFileError(PathBuf, io::Error);
+
+impl std::fmt::Display for SourceFileError {
+
+    fn fmt(&self, f :&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "`{}`\n    {}",  self.0.display(), self.1)
+    }
+
+}
+
+impl std::error::Error for SourceFileError {}
+
+#[derive(Debug)]
+pub struct SourceFileErrors {
+    errors: Vec<SourceFileError>,
+}
+
+impl std::fmt::Display for SourceFileErrors {
+
+    fn fmt(&self, f :&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Failed to load {} file(s):", self.errors.len())?;
+        for (n, error) in self.errors.iter().enumerate() {
+            write!(f, "\n {} - {}", n + 1, error)?;
+        }
+        Ok(())
+    }
+
+}
+
+impl std::error::Error for SourceFileErrors {}
+
+
+#[cfg(test)]
+mod tests {}

@@ -21,15 +21,16 @@ pub enum Terminal<'lex> {
     LeftRightArrow,
     Tick,
     Comma,
+    Where,
     Newline,
     EndOfFile,  
     Identifier(&'lex str),
-    StoichCoef(u64),
+    Number(i64),
 }
 
 impl<'lex> Terminal<'lex> {
-    pub fn is_coef(&self) -> bool {
-        matches!(*self, Terminal::StoichCoef(_))
+    pub fn is_number(&self) -> bool {
+        matches!(*self, Terminal::Number(_))
     }
 
     pub fn is_identifier(&self) -> bool {
