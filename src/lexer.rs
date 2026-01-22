@@ -1,7 +1,8 @@
-use super::grammar::Terminal;
+use super::tokens::{Terminal, Token};
 use std::iter::Peekable;
 use std::str::Chars;
-
+use std::fmt;
+use crate::error::LexError;
 
 
 pub struct Lexer<I>   
@@ -9,7 +10,8 @@ where
     I : Iterator<Item = char> 
 {
     characters: Peekable<I>,
-    lexeme: Lexeme,   
+    loc: Span,
+    lexeme : String,   
     eof: bool,
 }
 
@@ -19,10 +21,19 @@ where
 {
 
     pub fn new(characters: I) -> Self {
-        let lexeme = Lexeme::new();
         Self {
             characters : characters.peekable(),
-            lexeme,
+            loc : Span::new(String::new()),
+            lexeme : String::with_capacity(16),
+            eof: false,
+        }
+    }
+    
+    pub fn with_name(characters: I, name: String) -> Self {
+        Self {
+            characters : characters.peekable(),
+            loc: Span::new(name),
+            lexeme: String::with_capacity(16),
             eof: false,
         }
     }
@@ -32,6 +43,7 @@ where
     fn advance(&mut self) -> Option<char> {
         let next_char = self.characters.next();
         if let Some(ch) = next_char {
+            self.loc.advance(ch);
             self.lexeme.push(ch);
         }
         next_char
@@ -40,6 +52,7 @@ where
     fn advance_if(&mut self, func: impl FnOnce(&char) -> bool) -> Option<char> {
         let next_char = self.characters.next_if(func);
         if let Some(ch) = next_char {
+            self.loc.advance(ch);
             self.lexeme.push(ch);
         }
         next_char
@@ -48,6 +61,7 @@ where
     fn advance_if_eq(&mut self, ch: &char) -> Option<char> {
         let next_char = self.characters.next_if_eq(ch);
         if let Some(c) = next_char {
+            self.loc.advance(c);
             self.lexeme.push(c);
         }
         next_char
@@ -70,53 +84,65 @@ where
         self.check_if(|c| c == ch)
     }
 
+    // 
+    fn clear_buffers(&mut self) {
+        self.lexeme.clear();
+        self.loc.clear();
+    }
+
     // Terminal stream methods
     // Emit new terminal
-    pub fn pop(&mut self) -> Option<Terminal> {
+    pub fn pop(&mut self) -> Option<Result<Token, LexError>> {
         if self.eof {
             return None;
         }
-        let token = self.lexify();
-        Some(token)
+        let terminal = self.lexify()
+            .map(
+                |t| Token::new(t, self.loc.clone())
+            );
+        
+        Some(terminal)
     }
 
     // match characters against a terminals
     // this method is used by peek and pop
-    fn lexify(&mut self) -> Terminal {
+    fn lexify(&mut self) -> Result<Terminal, LexError> {
         self.skip_whitespace();
-        self.skip_comments();
+        self.skip_comments()?;
 
-        self.lexeme.clear();
+        self.clear_buffers();
         let next_char = self.advance();
         if next_char.is_none() {
             self.eof = true;
-            return Terminal::EOF;
+            return Ok(Terminal::EOF);
         }
 
         let ch = next_char.unwrap();
+        
 
-        match ch {
-            '\n' => return Terminal::Newline,
-            '(' => return Terminal::LeftParen,
-            ')' => return Terminal::RightParen,
-            '{' => return Terminal::LeftBrace,
-            '}' => return Terminal::RightBrace,
-            '[' => return Terminal::LeftBracket,
-            ']' => return Terminal::RightBracket,
-            '+' => return Terminal::Plus,
-            '*' => return Terminal::Star,
-            ';' => return Terminal::SemiColon,
-            ':' => return Terminal::Colon,
-            '=' => return Terminal::Equal,
-            '\'' => return Terminal::Tick,
-            ',' => return Terminal::Comma,
-            '>' => return Terminal::Greater,
-            '/' => return Terminal::Slash,
-            '<' => return self.less_or_arrow(),
-            '-' => return self.minus_or_arrow(),
-            '\"' => return self.quoted_identifier(),
-            _ => return self.identifier(),
-        }
+        let token = match ch {
+            '\n' => Terminal::Newline,
+            '(' => Terminal::LeftParen,
+            ')' => Terminal::RightParen,
+            '{' => Terminal::LeftBrace,
+            '}' => Terminal::RightBrace,
+            '[' => Terminal::LeftBracket,
+            ']' => Terminal::RightBracket,
+            '+' => Terminal::Plus,
+            '*' => Terminal::Star,
+            ';' => Terminal::SemiColon,
+            ':' => Terminal::Colon,
+            '=' =>   Terminal::Equal,
+            '\'' =>Terminal::Tick,
+            ',' => Terminal::Comma,
+            '>' => Terminal::Greater,
+            '/' =>  Terminal::Slash,
+            '<' => self.less_or_arrow(),
+            '-' =>  self.minus_or_arrow(),
+            '\"' => self.quoted_identifier()?,
+            _ => self.identifier(),
+        };
+        return Ok(token)
     }
 
     // methods used inside lexify
@@ -130,15 +156,16 @@ where
         }
     }
 
-    fn skip_comments(&mut self) {
+    fn skip_comments(&mut self) -> Result<(), LexError> {
         if self.advance_if_eq(&'/').is_some() {
             let ch = self.advance_if(|c| *c == '/' || *c == '*');
             match ch {
                 Some('/') => self.skip_line_comment(),
-                Some('*') => self.skip_block_comment(),
-                _ => return,
+                Some('*') => self.skip_block_comment()?,
+                _ => (),
             }
         }
+        return Ok(())
     }
 
     fn skip_line_comment(&mut self) {
@@ -151,17 +178,24 @@ where
         }
     }
 
-    fn skip_block_comment(&mut self) {
+    fn skip_block_comment(&mut self) -> Result<(), LexError> {
         // Look for */ sequence
-        loop {
+        // record location of /* start in case of unterminated block
+        let (line, col) = (self.loc.line, self.loc.column); 
+        loop { 
             match self.advance() {
-                None => panic!("Unterminated block comment"),
+                None => {
+                    let e = LexError::new(
+                        "unterminated block comment /*", self.loc.name.clone(), line, col);
+                    return Err(e);
+                },
                 Some('*') if self.advance_if_eq(&'/').is_some() => {
-                    return;
+                    return Ok(());
                 }
                 Some(_) => continue,
             }
         }
+        
     }
 
     fn minus_or_arrow(&mut self) -> Terminal {
@@ -181,16 +215,21 @@ where
         }
     }
 
-    fn quoted_identifier(&mut self) -> Terminal {
-        // Look for closing "
-        self.lexeme.clear();
+    fn quoted_identifier(&mut self) -> Result<Terminal, LexError> {
+        // Look for closing "        
+        // record location of /* start in case of unterminated block
+        let (line, col) = (self.loc.line, self.loc.column); 
+        self.clear_buffers();
         loop {
             match self.check() {
-                None => panic!("Unterminated literal identifier."),
+                None => {
+                    let e = LexError::new("unterminated literal\"",  self.loc.name.clone(), line, col);
+                    return Err(e);
+                },
                 Some('"') => {
-                    let s = self.lexeme.show();
-                    return Terminal::Identifier(s.to_string());
-                }
+                    let token = Terminal::Identifier(self.lexeme.clone());
+                    return Ok(token);  
+                },
                 Some(ch) => {
                     self.advance();
                     continue;
@@ -201,7 +240,7 @@ where
 
     fn identifier(&mut self) -> Terminal {
         while let Some(ch) = self.advance_if(|c| c.is_alphanumeric()) {}
-        let s = self.lexeme.show();
+        let s = self.lexeme.as_str();
         // check keywords
         match s {
             "where" => return Terminal::Where,
@@ -211,7 +250,7 @@ where
         let maybe_number = s.parse::<i64>();
         match maybe_number {
             Ok(n) => Terminal::Number(n),
-            _ => Terminal::Identifier(s.to_string()),
+            _ => Terminal::Identifier(self.lexeme.clone()),
         }
     }
 }
@@ -220,13 +259,60 @@ impl<I> Iterator for Lexer<I>
 where
     I : Iterator<Item = char>
 {
-    type Item = Terminal;
+    type Item = Result<Token, LexError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.pop()
     }
 }
 
+// location information
+#[derive(Clone, Debug)]
+pub struct Span {
+    pub name: String,
+    pub start: usize, // byte offset
+    pub end: usize,   // byte offset
+    pub line: usize,  // 1-based
+    pub column: usize, // 1-based
+}
+
+impl Span {
+    
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            start: 0,
+            end: 0,
+            line: 1,
+            column: 1,
+        }
+    }
+    
+    pub fn advance(&mut self, ch : char){
+        self.end += ch.len_utf8();
+        if ch == '\n' {
+            self.line += 1;
+            self.column = 1;
+        } else {
+            self.column += 1;       
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.start = self.end;
+    }
+
+}
+
+
+impl fmt::Display for Span {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "line {}, column {}", self.line, self.column)
+    }
+}
+
+
+/*
 #[derive(Debug)]
 struct Lexeme {
     start: usize,
@@ -255,31 +341,32 @@ impl Lexeme {
 
 }
 
+*/
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
-    fn test_lexeme_count() {
+    fn test_span() {
         let source = "+ -> A";
         let mut lexer = Lexer::new(source.chars());
         lexer.lexify();
-        assert_eq!(lexer.lexeme.start, 0);
-        assert_eq!(lexer.lexeme.end, 1);
+        assert_eq!(lexer.loc.start, 0);
+        assert_eq!(lexer.loc.end, 1);
         lexer.lexify();
-        assert_eq!(lexer.lexeme.start, 2);
-        assert_eq!(lexer.lexeme.end, 4);
+        assert_eq!(lexer.loc.start, 2);
+        assert_eq!(lexer.loc.end, 4);
         lexer.lexify();
-        assert_eq!(lexer.lexeme.start, 5);
-        assert_eq!(lexer.lexeme.end, 6);
+        assert_eq!(lexer.loc.start, 5);
+        assert_eq!(lexer.loc.end, 6);
     }
 
     #[test]
     fn test_multi_char_tokens() {
         let source = "-> <- <->";
         let mut lexer = Lexer::new(source.chars());
-        assert_eq!(lexer.lexify(), Terminal::RightArrow);
-        assert_eq!(lexer.lexify(), Terminal::LeftArrow);
-        assert_eq!(lexer.lexify(), Terminal::LeftRightArrow);
+        assert_eq!(lexer.lexify().expect("check test"), Terminal::RightArrow);
+        assert_eq!(lexer.lexify().expect("check test"), Terminal::LeftArrow);
+        assert_eq!(lexer.lexify().expect("check test"), Terminal::LeftRightArrow);
     }
 
     #[test]
@@ -292,11 +379,11 @@ This is a block comment
 */+";
         let mut lexer = Lexer::new(source.chars());
 
-        assert_eq!(lexer.lexify(), Terminal::Newline);
-        assert_eq!(lexer.lexify(), Terminal::RightArrow);
-        assert_eq!(lexer.lexify(), Terminal::Newline);
-        assert_eq!(lexer.lexify(), Terminal::Star);
-        assert_eq!(lexer.lexify(), Terminal::Plus);
+        assert_eq!(lexer.lexify().unwrap(), Terminal::Newline);
+        assert_eq!(lexer.lexify().unwrap(), Terminal::RightArrow);
+        assert_eq!(lexer.lexify().unwrap(), Terminal::Newline);
+        assert_eq!(lexer.lexify().unwrap(), Terminal::Star);
+        assert_eq!(lexer.lexify().unwrap(), Terminal::Plus);
     }
 
     #[test]
@@ -336,7 +423,7 @@ This is a block comment
     fn test_lexer_iterator() {
         let source = "A + B -> C + D";
         let mut lexer = Lexer::new(source.chars());
-        let tokens: Vec<Terminal> = lexer.collect();
+        let tokens: Vec<Terminal> = lexer.map(|t| t.to_terminal()).collect();
         let expected_tokens = [
             Terminal::Identifier("A".to_string()),
             Terminal::Plus,
@@ -354,7 +441,7 @@ This is a block comment
     fn test_newline_separators() {
         let source = "A->B\nC->D";
         let mut lexer = Lexer::new(source.chars());
-        let tokens: Vec<Terminal> = lexer.collect();
+        let tokens: Vec<Terminal> = lexer.map(|t| t.to_terminal()).collect();
         let expected_tokens = [
             Terminal::Identifier("A".to_string()),
             Terminal::RightArrow,

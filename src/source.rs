@@ -15,7 +15,11 @@ impl SourceFile {
         let content = fs::read_to_string(&path)?;
         Ok(Self {path, content})
     }
-    
+
+    pub fn name(&self) -> String {
+        self.path.display().to_string()
+    }    
+
     pub fn content(&self) -> &str {
         &self.content
     }

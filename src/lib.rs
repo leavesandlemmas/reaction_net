@@ -2,11 +2,11 @@ pub mod cli;
 
 // module declarations
 mod source;
-mod grammar;
+mod tokens;
 mod lexer;
 //mod parser;
 //mod matrix;
-//mod error;
+mod error;
 //mod registry;
 
 
