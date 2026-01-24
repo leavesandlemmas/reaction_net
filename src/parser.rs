@@ -1,5 +1,5 @@
 // import grammar symbols
-use super::grammar::Terminal;
+use super::grammar::Token;
 //use super::error::SyntaxError;
 
 //use crate::registry::Registry;
@@ -9,7 +9,7 @@ use super::grammar::Terminal;
 // Parser struct contains syntax analysis logic
 pub struct Parser<I> 
     where
-I : Iterator<Item = Terminal>
+I : Iterator<Item = Token>
 {
     tokens : Peekable<I>,
 }
@@ -25,16 +25,16 @@ I : Iterator<Item = Terminal>
 
     // actions for token stream
     // advance to next character
-    fn advance(&mut self) -> Option<Terminal> {
+    fn advance(&mut self) -> Option<Token> {
         self.tokens.next()
     }
 
-    fn advance_if_eq(&mut self, t : Terminal) -> Option<Terminal> {
+    fn advance_if_eq(&mut self, t : Terminal) -> Option<Token> {
         self.tokens.next_if_eq(&t)
     } 
 
     // look at next character without consuming
-    fn peek(&mut self) -> Option<&Terminal> {
+    fn peek(&mut self) -> Option<&Tokenw> {
         self.tokens.peek()
     }
 
@@ -112,6 +112,10 @@ I : Iterator<Item = Terminal>
         };
         self.species()?;
         Ok(())
+    }
+
+    fn stoich_coef(&mut self) -> Result<(), ParserError> {
+        
     }
 
     fn species(&mut self) -> Result<(), ParseError> {
