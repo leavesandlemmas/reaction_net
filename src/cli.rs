@@ -4,7 +4,8 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use crate::source::load_source_files;
-use crate::lexer::Lexer;
+// use crate::lexer::Lexer;
+// use crate::parser::Parser;
 
 pub struct Config {
     files: Vec<PathBuf>,
@@ -63,12 +64,9 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     }
 
     let source_files = load_source_files(&config.files)?;
-    let tokens = source_files.iter().flat_map(|f| Lexer::with_name(f.content().chars(), f.name()));    
-    for token in tokens {
-            let t = token?;
-            println!("{t:?}");
-    }
-    //parse(source_files.get());
+    // let tokens = source_files.iter().flat_map(|f| Lexer::with_name(f.content().chars(), f.name()));    
+    // let mut parser = Parser::new(tokens);
+    // parser.advance()?;
 
     Ok(())
 }

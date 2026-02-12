@@ -38,7 +38,16 @@ impl Terminal {
         matches!(self, Terminal::Identifier(_))   
     }
 
-    pub fn is_yield_symbol (&self ) -> bool {
+    pub fn is_line_separator(&self) -> bool {
+        match self {
+            Terminal::Newline => true,
+            Terminal::SemiColon=> true,
+            _ => false,
+        }
+    }
+    
+
+    pub fn is_yield_symbol(&self) -> bool {
         match self {
             Terminal::RightArrow => true,
             Terminal::LeftArrow => true,
@@ -49,27 +58,35 @@ impl Terminal {
     }
 }
 
-use super::lexer::Span;
+// use super::lexer::Span;
 
-#[derive(Clone, Debug)]
-pub struct Token {
-    token: Terminal, 
-    loc: Span,
-}
+// #[derive(Clone, Debug)]
+// pub struct Token {
+//     token: Terminal, 
+//     loc: Span,
+// }
 
-impl Token {
+// impl Token {
 
-    pub fn new(token : Terminal, loc : Span) -> Self {
-        Self {token, loc}
-    }
+//     pub fn new(token : Terminal, loc : Span) -> Self {
+//         Self {token, loc}
+//     }
 
-    pub fn as_terminal(&self) -> &Terminal {
-        &self.token
-    }
+//     pub terminal_is(t : Terminal) -> bool {
+//         self.token == t
+//     }
 
-    pub fn to_terminal(&self) -> Terminal {
-        self.token.clone()
-    }
+//     pub fn from_terminal(token : Terminal) -> Self{
+//         Self{token, loc : Span::new(String::new())}
+//     } 
 
-}
+//     pub fn as_terminal(&self) -> &Terminal {
+//         &self.token
+//     }
+
+//     pub fn to_terminal(&self) -> Terminal {
+//         self.token.clone()
+//     }
+
+// }
 

@@ -1,41 +1,78 @@
-// import grammar symbols
-use super::grammar::Token;
-//use super::error::SyntaxError;
+mod tokens;
+mod lexer;
+mod error;
 
 //use crate::registry::Registry;
 //use crate::matrix::CscMatrix;
+use crate::parser::tokens::Terminal;
+use crate::parser::lexer::Lexer;
+use crate::parser::error::{ParseError, ParseErrorKind};
 
 
 // Parser struct contains syntax analysis logic
-pub struct Parser<I> 
-    where
-I : Iterator<Item = Token>
-{
-    tokens : Peekable<I>,
+pub struct Parser<'lex> {
+    lexer: Lexer<'lex>,
+    lookahead: Option<Terminal>,
+    reaction_names: Vec<Option<String>>,
 }
 
-impl<I> Parser<I> 
-    where
-I : Iterator<Item = Terminal>
+impl<'lex> Parser<'lex> 
 {
 
-    pub fn new(tokens : I) -> Self {
-        Self { tokens : tokens.peekable() }
+    pub fn new(source: &'lex str, source_name: &'lex str) -> Self {
+        Self {lexer: Lexer::new(source, source_name), lookahead : None, reactions : Vec::new()}
     }
 
-    // actions for token stream
+    // actions for token stream; must handle error?
     // advance to next character
-    fn advance(&mut self) -> Option<Token> {
-        self.tokens.next()
+    fn advance(&mut self) -> Result<Option<Terminal>, ParseError> {
+        match self.lookahead {
+            None => self.lexer.pop().transpose(),
+            Some(_) => Ok(self.lookahead.take()), 
+        }
     }
 
-    fn advance_if_eq(&mut self, t : Terminal) -> Option<Token> {
-        self.tokens.next_if_eq(&t)
+    
+    fn advance_if(&mut self, func : impl FnOnce(&Terminal) -> bool) -> Result<bool, ParseError> {
+        if self.peek_if(func)? {
+            self.advance()?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     } 
 
-    // look at next character without consuming
-    fn peek(&mut self) -> Option<&Tokenw> {
-        self.tokens.peek()
+    fn advance_if_eq(&mut self, token : Terminal) -> Result<bool, ParseError> {
+        self.advance_if(|t| *t == token)
+    } 
+
+    //look at next character without consuming
+    fn peek(&mut self) -> Result<Option<&Terminal>, ParseError> {
+        if self.lookahead.is_none() {
+            self.lookahead = self.advance()?;            
+        }
+        Ok(self.lookahead.as_ref())
+    }
+
+        //look at next character without consuming
+    fn peek_if(&mut self, func : impl FnOnce(&Terminal) -> bool) -> Result<bool, ParseError> {
+        let value = self.peek()?.map(func); 
+        let out = match value {
+            Some(true) => true,
+            _ => false,
+        };
+        Ok(out)
+    }
+
+    //look at next character without consuming
+    fn peek_if_eq(&mut self, token : Terminal) -> Result<bool, ParseError> {
+        self.peek_if(|t| *t==token)
+    }
+
+    fn emit_error(&self, kind : ParseErrorKind) -> ParseError {
+        let file = self.lexer.name().to_string();
+        let (line, col) = self.lexer.location();
+        ParseError::new(kind, file, line, col)
     }
 
     // build AST for CRN from recursiving descent parsing
@@ -47,18 +84,77 @@ I : Iterator<Item = Terminal>
     // grammar productions for recursive descent
     fn reaction_list(&mut self) -> Result<(), ParseError> {
         self.reaction()?;
-        self.next_reaction()?;
+        while !self.peek_if_eq(Terminal::EOF)? {
+            self.line_separator()?;
+
+            match self.peek()? {
+                None | Some(Terminal::EOF) => break,
+                other => self.reaction()?,
+            }
+        }
+        
         Ok(())
     }
 
+    fn line_separator(&mut self) -> Result<(), ParseError> {
+        if self.advance_if(|x| x.is_line_separator())? {
+            Ok(())
+        } else {
+            let e = self.emit_error(ParseErrorKind::MissingLineSep);
+            Err(e)
+        }
+    }
+
     fn reaction(&mut self) -> Result<(), ParseError> {
+        // check if empty reaction
+        match self.peek()? {
+            Some(Terminal::Newline) 
+            | Some(Terminal::SemiColon) 
+            | Some(Terminal::EOF) => return Ok(()),
+            _ => (),
+        }
+
+        // check for reaction name
+        let name = if self.peek_if(|x| x.is_identifier()) {
+            
+        } else {
+            
+        }
+
+        self.reaction_names.push(name);
 
         self.complex()?;
         self.yield_symbol()?;
         self.complex()?;
+
+        if self.advance_if_eq(Terminal::Colon)? {
+            self.kinetics()?
+        } 
+
+        loop {
+            if self.peek_if(|x| !x.is_yield_symbol())? {
+                break;
+            }
+            self.yield_symbol()?;
+            self.complex()?;
+            
+        }      
+
         Ok(())
     }
 
+    fn yield_symbol(&mut self) -> Result<(), ParseError> {
+        todo!();
+    }
+
+    fn kinetics(&mut self) -> Result<(), ParseError> {
+        todo!();
+    }
+
+    fn complex(&mut self) -> Result<(), ParseError> {
+        todo!();
+    }
+/*
     fn next_reaction(&mut self) -> Result<(), ParseError> {
         if self.advance_if_eq(Terminal::SemiColon) {
             if self.peek_if(|x| *x != Terminal::SemiColon) {
@@ -75,21 +171,7 @@ I : Iterator<Item = Terminal>
         }
     }
 
-    fn yield_symbol(&mut self) -> Result<(), ParseError> {
-        let maybe_token = self.next_if(grammar::is_yield_symbol)?;
-        if let Some(s) = maybe_token {
-          
-            Ok(())
-        } else {
-            panic!("Expected yield symbol '->', '<-', '<->' or '='")
-        }
-    }
 
-    fn complex(&mut self) -> Result<(), ParseError> {
-        self.monomial()?;
-        self.next_monomial()?;
-        Ok(())
-    }
 
     fn next_monomial(&mut self) -> Result<(), ParseError> {
         if self.advance_if_match(Terminal::Plus) {
@@ -128,13 +210,39 @@ I : Iterator<Item = Terminal>
             panic!("Factor Error.")
         }
     }
+*/
 }
 
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lexer::Lexer;
 
+    #[test]
+    fn test_advance() -> Result<(), ParseError>{
+        let source = "( + - )";
+        let mut parser = Parser::new(source, "test");
+        
+        assert_eq!(parser.advance()?, Some(Terminal::LeftParen));
+        assert_eq!(parser.peek()? , Some(&Terminal::Plus));  
+
+        Ok(())
     
+    }
+
+    #[test]
+    fn test_empty() -> Result<(), ParseError>{
+        let source = "";
+        let mut parser = Parser::new(source, "test");
+        parser.parse()?;
+        Ok(())
+    }  
+
+    #[test]
+    fn test_newline_separators() -> Result<(), ParseError>{
+        let source = "\n\n;;\n\n";
+        let mut parser = Parser::new(source, "test");
+        parser.parse()?;
+        Ok(())
+    }   
 }
