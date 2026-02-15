@@ -13,14 +13,13 @@ use crate::parser::error::{ParseError, ParseErrorKind};
 pub struct Parser<'lex> {
     lexer: Lexer<'lex>,
     lookahead: Option<Terminal>,
-    reaction_names: Vec<Option<String>>,
 }
 
 impl<'lex> Parser<'lex> 
 {
 
     pub fn new(source: &'lex str, source_name: &'lex str) -> Self {
-        Self {lexer: Lexer::new(source, source_name), lookahead : None, reactions : Vec::new()}
+        Self {lexer: Lexer::new(source, source_name), lookahead : None}
     }
 
     // actions for token stream; must handle error?
@@ -115,13 +114,13 @@ impl<'lex> Parser<'lex>
         }
 
         // check for reaction name
-        let name = if self.peek_if(|x| x.is_identifier()) {
-            
-        } else {
-            
-        }
+//        let name = if self.peek_if(|x| x.is_identifier()?) {
+//            Identifier()
+//        } else {
+//            None  
+//        };
 
-        self.reaction_names.push(name);
+//        self.reaction_names.push(name);
 
         self.complex()?;
         self.yield_symbol()?;

@@ -217,7 +217,8 @@ pub struct CscMatrix<T> {
     dim: Dim,
 }
 
-impl<T: AddAssign + Clone> CscMatrix<T> {
+impl<T: AddAssign + Clone + PartialEq> CscMatrix<T> {
+    
     pub fn new() -> Self{
         Self {
             values: Vec::new(),
@@ -226,6 +227,36 @@ impl<T: AddAssign + Clone> CscMatrix<T> {
             dim : Dim::new(),
         }
     }
+
+    pub fn is_unique_col(&self, values : Vec<T>, row_index : Vec<usize>)-> bool {
+        if self.col_slice.len() == 0 {
+            return true;        
+        }             
+         
+        let new_col_nnz = row_index.len();
+        for k in 0..self.dim.col() {
+            // non-zero entries is the same ?            
+            let col_nnz = self.col_slice[k+1] - self.col_slice[k];
+            if col_nnz != new_col_nnz {
+                continue;            
+            }
+
+            // row entries are the same
+            for i in 0..col_nnz {
+                if row_index[i] != self.row_index[self.col_slice[k] + i] {
+                    continue;
+                }
+                if values[i] != self.values[self.col_slice[k] + i] {
+                    continue;
+                }
+
+            } 
+               
+        }
+        
+        true
+            
+    }    
 }
 
 impl<T: AddAssign + Clone> From<CooMatrix<T>> for CscMatrix<T> {
@@ -362,11 +393,16 @@ mod tests {
         // check sorting
         let mat: CscMatrix<i64> = mat.into();
         assert_eq!(mat.values, vec![2, 6, 4, 2]);
-        assert_eq!(mat.col_slice, vec![0, 2, 2, 3, 4]);
+        assert_eq!(mat.col_slice, vec![0, 2, 2, 3, 3, 3, 4]);
         assert_eq!(mat.row_index, vec![0, 1, 3, 4]);
 
         // assert_eq!(mat.values[mat.col_slice[0]..mat.row_slice[1]], vec![2]);
         // assert_eq!(mat.values[mat.col_slice[2]..mat.row_slice[3]], vec![]);
         // assert_eq!(mat.values[mat.row_slice[4]..mat.row_slice[5]], vec![2]);
+    }
+
+    #[test]
+    fn update_csc_matrix() {
+        
     }
 }
