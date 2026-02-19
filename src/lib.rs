@@ -2,8 +2,8 @@ pub mod cli;
 
 // module declarations
 mod source;
-mod parser;
-mod matrix;
+// mod parser;
+mod sparse;
 mod registry;
 
 

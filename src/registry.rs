@@ -41,6 +41,7 @@ impl<T: Eq + Hash + Clone> Registry<T> {
     pub fn get(&self, idx: usize) -> Option<&T> {
         self.symbols.get(idx)
     }
+
 }
 
 impl<T : Eq + Hash + Clone> Index<usize> for Registry<T> {
@@ -49,4 +50,27 @@ impl<T : Eq + Hash + Clone> Index<usize> for Registry<T> {
     fn index(&self, idx : usize) -> &Self::Output {
         &self.symbols[idx]
     }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_string_registry() {
+        let mut registry: Registry<String> = Registry::new();
+        let idx = registry.register("A".to_string());
+        assert_eq!(idx, 0);
+        let idx = registry.register("B".to_string());
+        assert_eq!(idx, 1);
+
+        let idx = registry.register("A".to_string());
+        assert_eq!(idx, 0);
+
+        assert_eq!(registry.get(3), None);
+        
+    }
+
+    
 }
