@@ -39,6 +39,10 @@ impl<T: Scalar> CscMatrix<T> {
         (self.values, self.col_ptr, self.row_indices, self.nrow, self.ncol)
     }
 
+    pub fn view_raw(&self) -> (&[T], &[usize], &[usize]) {
+        (self.values.as_ref(), self.col_ptr.as_ref(), self.row_indices.as_ref())
+    }
+
     pub fn insert_col_if_unique(&mut self, col: CompressedVector<T>) -> usize {
         0
     }
@@ -105,16 +109,16 @@ impl<T>  SparseMatrix for CscMatrix<T>  {
 mod tests {
     use super::*;
 
-    // #[test]
-    // fn test_csc_matrix() {
-    //     let mut mat: CooMatrix<i64> = CooMatrix::new();
-    //     mat.insert(0, 0, -1);
-    //     mat.insert(1, 0, 1);
-    //     mat.insert(4, 5, 2);
-    //     mat.insert(0, 0, 3); // duplicate entry
-    //     mat.insert(3, 2, 4);
-    //     mat.insert(1, 0, 5); // duplicate entry
-
+//    #[test]
+//    fn test_csc_matrix() {
+//         let mut mat: CooMatrix<i64> = CooMatrix::new();
+//         mat.insert(0, 0, -1);
+//         mat.insert(1, 0, 1);
+//         mat.insert(4, 5, 2);
+//         mat.insert(0, 0, 3); // duplicate entry
+//         mat.insert(3, 2, 4);
+//         mat.insert(1, 0, 5); // duplicate entry
+//
         
     //     // check sorting
     //     let mat: CscMatrix<i64> = CscMatrix::from(mat);

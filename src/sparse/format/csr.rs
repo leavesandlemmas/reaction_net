@@ -34,8 +34,12 @@ impl<T: Scalar> CsrMatrix<T> {
 
     }
 
-    pub fn into_raw(self) ->(Vec<T>, Vec<usize>, Vec<usize>, usize, usize) {
+    pub fn into_raw(self) -> (Vec<T>, Vec<usize>, Vec<usize>, usize, usize) {
         (self.values, self.row_ptr, self.col_indices, self.nrow, self.ncol)
+    }
+
+    pub fn view_raw(&self) -> (&[T], &[usize], &[usize]) {
+        (self.values.as_ref(), self.row_ptr.as_ref(), self.col_indices.as_ref())
     }
 }
 

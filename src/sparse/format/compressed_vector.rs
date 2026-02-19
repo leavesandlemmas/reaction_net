@@ -71,10 +71,6 @@ impl<T: Scalar> CompressedVector<T> {
                 .cmp(&self.indices[y])
             );
 
-        self.permute(&mut p);
-    }
-
-    fn permute(&mut self, p : &mut [usize]) {
         let nnz = p.len();
         assert!(nnz == self.nnz());
         // apply permutation by cyclic decomposition
