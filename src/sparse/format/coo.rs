@@ -3,6 +3,7 @@ use super::*;
 // Coordinate format
 // + supports duplicate entries
 // + no single element access
+#[derive(Debug, Clone)]
 pub struct CooMatrix<T> {
     values: Vec<T>,
     row_indices: Vec<usize>,
@@ -31,7 +32,7 @@ impl<T: Scalar> CooMatrix<T> {
         Self{values, row_indices, col_indices, nrow, ncol, canonical: None, sorted: None}
     }
 
-    pub(super) fn from_raw_ordered(values: Vec<T>, row_indices: Vec<usize>, col_indices: Vec<usize>, 
+    pub fn from_raw_unsafe(values: Vec<T>, row_indices: Vec<usize>, col_indices: Vec<usize>, 
         nrow: usize, ncol: usize, ord : Order) -> Self {
         Self{values, row_indices, col_indices, nrow, ncol, canonical: Some(ord), sorted: Some(ord)}
     }
@@ -39,7 +40,12 @@ impl<T: Scalar> CooMatrix<T> {
     pub fn into_raw(self) -> ( Vec<T>, Vec<usize>, Vec<usize>, usize, usize) {
         (self.values, self.row_indices, self.col_indices, self.nrow, self.ncol)
     }
-    
+
+    // for testing
+    pub fn view_raw(&self) -> (&[T], &[usize], &[usize]) {
+        (self.values.as_ref(), self.row_indices.as_ref(), self.col_indices.as_ref())
+    }
+
     pub fn is_canonical_format(&self) -> bool {
         self.canonical.is_some()
     }

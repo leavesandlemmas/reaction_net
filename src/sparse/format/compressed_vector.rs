@@ -2,7 +2,8 @@
 use super::*;
 
 
-struct CompressedVector<T> {
+#[derive(Debug, Clone)]
+pub struct CompressedVector<T> {
     values: Vec<T>,
     indices: Vec<usize>,
     dim: usize,

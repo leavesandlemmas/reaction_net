@@ -3,6 +3,8 @@ use super::*;
 
 // dictionary of keys
 // + element access
+
+#[derive(Debug, Clone)]
 pub struct DokMatrix<T> {
     nrow: usize,
     ncol: usize,

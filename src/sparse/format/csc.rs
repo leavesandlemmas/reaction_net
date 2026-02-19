@@ -1,5 +1,6 @@
 use super::*;
 
+#[derive(Debug, Clone)]
 pub struct CscMatrix<T> {
     values: Vec<T>,
     col_ptr: Vec<usize>,
@@ -28,7 +29,8 @@ impl<T: Scalar> CscMatrix<T> {
         ncol: usize ) -> Self {
             assert_eq!(col_ptr.len(), ncol + 1);
             assert_eq!(values.len(), row_indices.len());
-            assert!(row_indices.iter().max().map( |x| nrow > x + 1 ).unwrap());
+            let min_nrow = row_indices.iter().max().unwrap() + 1;
+            assert!(nrow >= min_nrow);
             Self{values, col_ptr, row_indices, nrow, ncol}
 
     }
@@ -37,46 +39,50 @@ impl<T: Scalar> CscMatrix<T> {
         (self.values, self.col_ptr, self.row_indices, self.nrow, self.ncol)
     }
 
-    pub fn get_col_index(&self, values : &[T], row_indices : &[usize]) -> Option<usize> {
-        if self.col_ptr.len() == 0 {
-            return None;        
-        }             
-        
-        // Check each column
-        for col_idx in 0..self.ncol {
-            if self.column_matches(col_idx, values, row_indices) {
-                return Some(col_idx);
-            }
-        }
-        
-        None
-            
-    }
-    
-    fn column_matches(&self, col_idx: usize, values: &[T], row_indices: &[usize]) -> bool {
-        let new_col_nnz = values.len();
-        let col_start = self.col_ptr[col_idx];
-        let col_end = self.col_ptr[col_idx + 1];
-        let col_nnz = col_end - col_start;
-
-        if col_nnz != new_col_nnz {
-            return false;
-        }
-
-        let mut found = true;
-        for i in 0..col_nnz {
-            if row_indices[i] != self.row_indices[col_start + i] 
-            || values[i] != self.values[col_start + i]
-            {
-                found = false;
-                break; 
-            }
-
-        }
-
-        found 
+    pub fn insert_col_if_unique(&mut self, col: CompressedVector<T>) -> usize {
+        0
     }
 
+//    pub fn get_col_index(&self, values : &[T], row_indices : &[usize]) -> Option<usize> {
+//        if self.col_ptr.len() == 0 {
+//            return None;        
+//        }             
+//        
+//        // Check each column
+//        for col_idx in 0..self.ncol {
+//            if self.column_matches(col_idx, values, row_indices) {
+//                return Some(col_idx);
+//            }
+//        }
+//        
+//        None
+//            
+//    }
+//    
+//    fn column_matches(&self, col_idx: usize, values: &[T], row_indices: &[usize]) -> bool {
+//        let new_col_nnz = values.len();
+//        let col_start = self.col_ptr[col_idx];
+//        let col_end = self.col_ptr[col_idx + 1];
+//        let col_nnz = col_end - col_start;
+//
+//        if col_nnz != new_col_nnz {
+//            return false;
+//        }
+//
+//        let mut found = true;
+//        for i in 0..col_nnz {
+//            if row_indices[i] != self.row_indices[col_start + i] 
+//            || values[i] != self.values[col_start + i]
+//            {
+//                found = false;
+//                break; 
+//            }
+//
+//        }
+//
+//        found 
+//    }
+//
 }
 
 impl<T>  SparseMatrix for CscMatrix<T>  {

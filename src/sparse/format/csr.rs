@@ -1,4 +1,5 @@
 use super::*;
+
 #[derive(Debug, Clone)]
 pub struct CsrMatrix<T> {
     values: Vec<T>,
@@ -27,7 +28,8 @@ impl<T: Scalar> CsrMatrix<T> {
         ncol: usize ) -> Self {
             assert_eq!(row_ptr.len(), nrow + 1);
             assert_eq!(values.len(), col_indices.len());
-            assert!(col_indices.iter().max().map( |x| ncol > x + 1 ).unwrap());
+            let min_ncol = col_indices.iter().max().unwrap() + 1;
+            assert!(ncol >= min_ncol);
             Self{values, row_ptr, col_indices, nrow, ncol}
 
     }

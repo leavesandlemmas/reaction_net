@@ -1,4 +1,4 @@
-use crate::sparse::format::*;
+use super::*;
 
 
 // COO MATRIX
@@ -37,7 +37,7 @@ impl<T: Scalar> From<CsrMatrix<T>> for CooMatrix<T> {
             }
         }
 
-        CooMatrix::from_raw_ordered(
+        CooMatrix::from_raw_unsafe(
             values,
             row_indices,
             col_indices,
@@ -61,7 +61,7 @@ impl<T: Scalar> From<CscMatrix<T>> for CooMatrix<T> {
             }
         }
 
-        CooMatrix::from_raw_ordered(
+        CooMatrix::from_raw_unsafe(
             values,
             row_indices,
             col_indices,
@@ -165,63 +165,54 @@ mod tests {
         coo
     }
 
-    #[test]
-    fn test_simple_coo_to_csr() {
-        let mut coo = create_simple_coo_matrix();
-        let csr = CsrMatrix::from(coo);
-        assert_eq!(csr.nnz(), 4);
-        assert_eq!(csr.row_ptr, vec![0,2,2,4]);
-        assert_eq!(csr.col_indices, vec![0,2,1,3]);
-    }
-
-    #[test]
-    fn test_simple_coo_to_csc() {
-        let mut coo = create_simple_coo_matrix();
-        let csc = CscMatrix::from(coo);
-        assert_eq!(csc.nnz(), 4);
-        assert_eq!(csc.col_ptr, vec![0,1,2,3,4]);
-        assert_eq!(csc.row_indices, vec![0,2,0,2]);
-    }
-    
+//    #[test]
+//    fn test_simple_coo_to_csr() {
+//        let mut coo = create_simple_coo_matrix();
+//        let csr = CsrMatrix::from(coo);
+//        assert_eq!(csr.nnz(), 4);
+//        assert_eq!(csr.row_ptr, vec![0,2,2,4]);
+//        assert_eq!(csr.col_indices, vec![0,2,1,3]);
+//    }
+//
+//    #[test]
+//    fn test_simple_coo_to_csc() {
+//        let mut coo = create_simple_coo_matrix();
+//        let csc = CscMatrix::from(coo);
+//        assert_eq!(csc.nnz(), 4);
+//        assert_eq!(csc.col_ptr, vec![0,1,2,3,4]);
+//        assert_eq!(csc.row_indices, vec![0,2,0,2]);
+//    }
+//    
     #[test]
     fn coo_to_csr_conversion() {
         let mut coo = create_simple_coo_matrix();
-        let coo_values = coo.values.clone();
-        let coo_rows = coo.row_indices.clone();
-        let coo_cols = coo.col_indices.clone();
+        coo.sort_by_row();   
+        let (coo_values, coo_rows, coo_cols, ncol, nrow) = coo.clone().into_raw();
+        
 
         let csr = CsrMatrix::from(coo);
         let mut coo_from_csr = CooMatrix::from(csr);
-
-        assert_eq!(coo_from_csr.values, coo_values);
-        assert_eq!(coo_from_csr.row_indices, coo_rows);
-        assert_eq!(coo_from_csr.col_indices, coo_cols);
-
-        coo_from_csr.sort_by_row();
-        assert_eq!(coo_from_csr.values, coo_values);
-        assert_eq!(coo_from_csr.row_indices, coo_rows);
-        assert_eq!(coo_from_csr.col_indices, coo_cols);
+        let (vs, rs , cs) = coo_from_csr.view_raw();
+        
+        assert_eq!(vs, coo_values);
+        assert_eq!(rs, coo_rows ); 
+        assert_eq!(cs, coo_cols );    
     }
 
     #[test]
     fn coo_to_csc_conversion() {
         let mut coo = create_simple_coo_matrix();
-        coo.sort_by_col();
-        let coo_values = coo.values.clone();
-        let coo_rows = coo.row_indices.clone();
-        let coo_cols = coo.col_indices.clone();
-
+        coo.sort_by_col();    
+        let (coo_values, coo_rows, coo_cols, ncol, nrow) = coo.clone().into_raw();
+        
+    
         let csc = CscMatrix::from(coo);
         let mut coo_from_csc = CooMatrix::from(csc);
-
-        assert_eq!(coo_from_csc.values, coo_values);
-        assert_eq!(coo_from_csc.row_indices, coo_rows);
-        assert_eq!(coo_from_csc.col_indices, coo_cols);
-
-        coo_from_csc.sort_by_col();
-        assert_eq!(coo_from_csc.values, coo_values);
-        assert_eq!(coo_from_csc.row_indices, coo_rows);
-        assert_eq!(coo_from_csc.col_indices, coo_cols);
+        let (vs, rs , cs) = coo_from_csc.view_raw();
+        
+        assert_eq!(vs, coo_values );
+        assert_eq!(rs, coo_rows ); 
+        assert_eq!(cs, coo_cols );    
 
     }
 

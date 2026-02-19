@@ -2,11 +2,14 @@ pub mod dok;
 pub mod coo;
 pub mod csr;
 pub mod csc;
+pub mod compressed_vector;
 
-use dok::DokMatrix;
-use coo::CooMatrix;
-use csr::CsrMatrix;
-use csc::CscMatrix;
+
+pub use dok::DokMatrix;
+pub use coo::CooMatrix;
+pub use csr::CsrMatrix;
+pub use csc::CscMatrix;
+pub use compressed_vector::CompressedVector;
 
 pub trait SparseMatrix {
     fn nrow(&self) -> usize;
