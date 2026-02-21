@@ -67,19 +67,19 @@ impl<'lex> Parser<'lex>
 
     // build AST for CRN from recursiving descent parsing
     pub fn parse(&mut self, net: &mut NetworkBuilder) -> Result<(), ParseError> {
-        self.reaction_list()?;
+        self.reaction_list(&mut net)?;
         Ok(())
     }
 
     // grammar productions for recursive descent
-    fn reaction_list(&mut self) -> Result<(), ParseError> {
-        self.reaction()?;
+    fn reaction_list(&mut self, net: &mut NetworkBuilder) -> Result<(), ParseError> {
+        self.reaction(net)?;
         while !self.peek_if_eq(Terminal::EOF)? {
             self.line_separator()?;
 
             match self.peek()? {
                 None | Some(Terminal::EOF) => break,
-                other => self.reaction()?,
+                other => self.reaction(net)?,
             }
         }
         
@@ -95,7 +95,7 @@ impl<'lex> Parser<'lex>
         }
     }
 
-    fn reaction(&mut self) -> Result<(), ParseError> {
+    fn reaction(&mut self, net: &mut NetworkBuilder) -> Result<(), ParseError> {
         // check if empty reaction
         match self.peek()? {
             Some(Terminal::Newline) 
