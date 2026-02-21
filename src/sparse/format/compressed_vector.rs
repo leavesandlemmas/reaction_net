@@ -2,7 +2,7 @@
 use super::*;
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CompressedVector<T> {
     values: Vec<T>,
     indices: Vec<usize>,
@@ -12,27 +12,51 @@ pub struct CompressedVector<T> {
 
 impl<T: Scalar> CompressedVector<T> {
     
-    fn new(dim : usize ) -> Self {
+    pub fn new() -> Self {
         Self {
             values: Vec::new(),
             indices: Vec::new(),
-            dim,
+            dim: 0,
             canonical: false,
         }
     }
+    
+     pub fn from_raw(
+        values: Vec<T>, 
+        indices: Vec<usize>, 
+        dim : usize) -> Self {
+            assert_eq!(values.len(), indices.len());
+            let min_dim = indices.iter().max().unwrap() + 1;
+            assert!(dim >= min_dim);
+            Self{values, indices, dim, canonical:false}
 
-    fn insert(&mut self, index: usize, value: T) {
+    }
+
+    pub fn into_raw(self) -> (Vec<T>, Vec<usize>, usize) {
+        (self.values, self.indices, self.dim)
+    }
+
+    pub fn view_raw(&self) -> (&[T], &[usize]) {
+        (self.values.as_ref(), self.indices.as_ref())
+    }
+
+
+    pub fn insert(&mut self, index: usize, value: T) {
         self.values.push(value);
         self.indices.push(index);
         self.dim = self.dim.max(index + 1);
         self.canonical = false;
     }
 
-    fn canonical_format(&mut self) {
+    pub fn canonical_format(&mut self) {
         self.sum_duplicates();
     }
 
-    fn sum_duplicates(&mut self) {
+    pub fn is_canonical_format(&self) -> bool {
+        self.canonical
+    }
+
+    pub fn sum_duplicates(&mut self) {
         if self.canonical {
             return ();
         }
@@ -108,14 +132,13 @@ impl<T: Scalar> CompressedVector<T> {
 }
 
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_compressed_vec() {
-        let mut vec : CompressedVector<i64> = CompressedVector::new(4);
+        let mut vec : CompressedVector<i64> = CompressedVector::new();
         vec.insert(2, 1);
         vec.insert(3, 1);
         vec.insert(2, 1);

@@ -13,7 +13,7 @@ impl<T: Scalar> CsrMatrix<T> {
     pub fn new() -> Self {
         Self {
             values: Vec::new(),
-            row_ptr: Vec::new(),
+            row_ptr: vec![0],
             col_indices: Vec::new(),
             nrow: 0,
             ncol: 0,

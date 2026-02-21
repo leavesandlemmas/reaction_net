@@ -187,7 +187,7 @@ mod tests {
     fn coo_to_csr_conversion() {
         let mut coo = create_simple_coo_matrix();
         coo.sort_by_row();   
-        let (coo_values, coo_rows, coo_cols, ncol, nrow) = coo.clone().into_raw();
+        let (coo_values, coo_rows, coo_cols, nrow, ncol) = coo.clone().into_raw();
         
 
         let csr = CsrMatrix::from(coo);
@@ -196,14 +196,17 @@ mod tests {
         
         assert_eq!(vs, coo_values);
         assert_eq!(rs, coo_rows ); 
-        assert_eq!(cs, coo_cols );    
+        assert_eq!(cs, coo_cols );   
+
+        assert_eq!(coo_from_csr.nrow(), nrow);
+        assert_eq!(coo_from_csr.ncol(), ncol); 
     }
 
     #[test]
     fn coo_to_csc_conversion() {
         let mut coo = create_simple_coo_matrix();
         coo.sort_by_col();    
-        let (coo_values, coo_rows, coo_cols, ncol, nrow) = coo.clone().into_raw();
+        let (coo_values, coo_rows, coo_cols, nrow, ncol) = coo.clone().into_raw();
         
     
         let csc = CscMatrix::from(coo);
@@ -214,6 +217,8 @@ mod tests {
         assert_eq!(rs, coo_rows ); 
         assert_eq!(cs, coo_cols );    
 
+        assert_eq!(coo_from_csc.nrow(), nrow);
+        assert_eq!(coo_from_csc.ncol(), ncol);
     }
 
 }
