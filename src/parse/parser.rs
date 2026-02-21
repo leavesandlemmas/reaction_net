@@ -1,13 +1,4 @@
-mod tokens;
-mod lexer;
-mod error;
-
-//use crate::registry::Registry;
-//use crate::matrix::CscMatrix;
-use crate::parser::tokens::Terminal;
-use crate::parser::lexer::Lexer;
-use crate::parser::error::{ParseError, ParseErrorKind};
-
+use super::*;
 
 // Parser struct contains syntax analysis logic
 pub struct Parser<'lex> {
@@ -18,8 +9,8 @@ pub struct Parser<'lex> {
 impl<'lex> Parser<'lex> 
 {
 
-    pub fn new(source: &'lex str, source_name: &'lex str) -> Self {
-        Self {lexer: Lexer::new(source, source_name), lookahead : None}
+    pub fn new(lexer: Lexer<'lex>) -> Self {
+        Self {lexer, lookahead : None}
     }
 
     // actions for token stream; must handle error?
@@ -75,7 +66,7 @@ impl<'lex> Parser<'lex>
     }
 
     // build AST for CRN from recursiving descent parsing
-    pub fn parse(&mut self) -> Result<(), ParseError> {
+    pub fn parse(&mut self, net: &mut NetworkBuilder) -> Result<(), ParseError> {
         self.reaction_list()?;
         Ok(())
     }

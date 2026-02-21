@@ -146,6 +146,48 @@ impl<T: Scalar> From<CooMatrix<T>> for CscMatrix<T> {
 }
 
 
+impl<T: Scalar> From<CompressedVector<T>> for CsrMatrix<T> {
+
+    fn from(mut vec: CompressedVector<T>) -> Self {
+        
+        // Algorithm works only if col-sorted, duplicates removed
+        vec.canonical_format();
+        let nnz = vec.nnz();
+        
+        let (values, indices, dim) = vec.into_raw();
+        let row_ptr = vec![0, nnz];
+        // count non zero entries per col
+        CsrMatrix::from_raw(
+            values,
+            row_ptr,
+            indices,
+            1, 
+            dim)
+    }
+}
+
+impl<T: Scalar> From<CompressedVector<T>> for CscMatrix<T> {
+
+    fn from(mut vec: CompressedVector<T>) -> Self {
+        
+        // Algorithm works only if col-sorted, duplicates removed
+        vec.canonical_format();
+        let nnz = vec.nnz();
+        
+        let (values, indices, dim) = vec.into_raw();
+        let col_ptr = vec![0, nnz];
+        // count non zero entries per col
+        CscMatrix::from_raw(
+            values,
+            col_ptr,
+            indices,
+            dim,
+            1)
+    }
+}
+
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -191,7 +233,7 @@ mod tests {
         
 
         let csr = CsrMatrix::from(coo);
-        let mut coo_from_csr = CooMatrix::from(csr);
+        let coo_from_csr = CooMatrix::from(csr);
         let (vs, rs , cs) = coo_from_csr.view_raw();
         
         assert_eq!(vs, coo_values);
@@ -210,7 +252,7 @@ mod tests {
         
     
         let csc = CscMatrix::from(coo);
-        let mut coo_from_csc = CooMatrix::from(csc);
+        let coo_from_csc = CooMatrix::from(csc);
         let (vs, rs , cs) = coo_from_csc.view_raw();
         
         assert_eq!(vs, coo_values );

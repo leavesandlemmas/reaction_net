@@ -4,8 +4,8 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use crate::source::load_source_files;
-// use crate::lexer::Lexer;
-// use crate::parser::Parser;
+use crate::parse_crn;
+use crate::network::NetworkBuilder;
 
 pub struct Config {
     files: Vec<PathBuf>,
@@ -64,10 +64,16 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     }
 
     let source_files = load_source_files(&config.files)?;
+    for f in source_files {
+        let mut net = NetworkBuilder::new();
+        parse_crn(&mut net, f)?;
+
+        println!("{net:?}");     
+    }
     // let tokens = source_files.iter().flat_map(|f| Lexer::with_name(f.content().chars(), f.name()));    
     // let mut parser = Parser::new(tokens);
     // parser.advance()?;
-
+      
     Ok(())
 }
 

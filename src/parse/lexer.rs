@@ -1,7 +1,7 @@
-use crate::parser::tokens::Terminal;
+
 use std::fmt;
 use std::str::Chars;
-use super::error::{ParseError, ParseErrorKind};
+use super::*;
 
 pub struct Lexer<'lex>
 {

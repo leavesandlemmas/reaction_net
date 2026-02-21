@@ -4,11 +4,12 @@ use std::rc::Rc;
 use std::ops::Index;
 
 // data structure for labeling a set with indices
-pub type Registry<T> = RegistryImpl<T>; // owns T (and copies)
-pub type RcRegistry<T> = RegistryImpl<Rc<T>>; // doesnt own T (copies poitners)
-
+/// owns T (and copies)
+pub type Registry<T> = RegistryImpl<T>; 
+/// doesnt own T (copies poitners)
+pub type RcRegistry<T> = RegistryImpl<Rc<T>>; 
 // used for symbol table and species registry
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RegistryImpl<T>
 where
     T: Eq + Hash + Clone,
