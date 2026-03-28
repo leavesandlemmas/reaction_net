@@ -1,52 +1,39 @@
 // standard imports
-use std::error::Error;
-use std::fmt;
 use std::iter::Peekable;
 use std::str::Chars;
+
 // import terminal symbols
 use super::grammar::Terminal;
+use super::LineNum;
+use super::error::LexError;
 
-pub type LineNum = u64;
 
-// Errors for lexical analysis
-#[derive(Debug)]
-pub struct LexError {
-    message: String,
-    line: LineNum,
-}
-
-impl LexError {
-    pub fn new(message: String, line: LineNum) -> Self {
-        LexError { message, line }
-    }
-}
-
-impl fmt::Display for LexError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Scanner Error on Line {}: {}", self.line, self.message)
-    }
-}
-
-impl Error for LexError {}
-
-pub type ScanResult = Result<Terminal, LexError>;
 
 // Scanner contains lexical analysis logic
-pub struct Scanner<'a> {
-    characters: Peekable<Chars<'a>>,
+pub struct Scanner<I, T>
+where
+    I: Iterator<Item = T>,
+{
+    characters: Peekable<I>,
     line: LineNum,
 }
 
-impl<'a> Scanner<'a> {
-    fn new(source: &'a str) -> Self {
+impl<'a> Scanner<Chars<'a>, char>
+{
+    pub fn scan(source: &'a str) -> Self {
+        Self::new(source.chars())
+    }
+}
+
+impl<I> Scanner<I, char>
+where
+    I: Iterator<Item = char>,
+{
+    pub fn new(source: I) -> Self {
         Self {
-            characters: source.chars().peekable(),
+            characters: source.peekable(),
             line: 1,
         }
-    }
-
-    pub fn scan(source: &'a str) -> Self {
-        Self::new(source)
     }
 
     pub fn get_line_num(&self) -> LineNum {
@@ -93,7 +80,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn comment_or_slash(&mut self) -> Option<ScanResult> {
+    fn comment_or_slash(&mut self) -> Option<Result<Terminal, LexError>> {
         if self.match_next(|c| *c == '/') {
             self.comment();
             None
@@ -152,8 +139,11 @@ impl<'a> Scanner<'a> {
     }
 }
 
-impl<'a> Iterator for Scanner<'a> {
-    type Item = ScanResult;
+impl<I> Iterator for Scanner<I, char>
+where
+    I: Iterator<Item = char>,
+{
+    type Item = Result<Terminal, LexError>;
 
     // preform lexical analysis; return list of tokens or LexError
     fn next(&mut self) -> Option<Self::Item> {
@@ -211,11 +201,26 @@ impl<'a> Iterator for Scanner<'a> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    
+    #[test]
+    fn scan_input() {
+        let source = "A + B -> C + D";
+        let tokens : Vec<Terminal> = Scanner::scan(source)
+            .take_while(|x| x.is_ok())
+            .map(|x| x.unwrap())
+            .collect();
+        assert_eq!(tokens, vec![
+            Terminal::Identifier("A".to_string()),
+            Terminal::Plus,
+            Terminal::Identifier("B".to_string()),
+            Terminal::RightArrow,
+            Terminal::Identifier("C".to_string()),
+            Terminal::Plus,
+            Terminal::Identifier("D".to_string())            
+            ])
 
+    }
 }

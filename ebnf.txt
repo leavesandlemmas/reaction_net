@@ -1,0 +1,24 @@
+<reaction_list> ::=  <reaction> (("\n" | ";")  <reaction>)*  "_EOF_" 
+<reaction> ::= ((<identifier> ":")? <complex> <yield> <complex> (":" <kinetics> | (<yield> <complex>)*)) | E
+<identifier> ::= [a-z]
+<kinetics> ::= [1-9]+
+<yield> ::= ("->" | "<-" | "<->" | "=")
+<complex> ::= <complex_mul> ("+" <complex_mul> )*
+<complex_mul> ::=  (  <integer_expr> "*")*  <complex_term> ( "*" <integer_expr>)*
+<complex_term> ::= "(" <complex> ")" | [A-Z]
+<integer_expr> ::= [1-9]
+
+
+-- module 
+
+
+-- integer ring 
+<integer_expr> ::= <add> ("+" <add> )*
+<add> ::=  <mul> ( "*" <mul>)*
+<mul> ::= "(" <integer_expr> ")" | <integer> 
+
+-- commutative monoid
+<expr> ::= <add> ("+" <add> )*
+<add> ::= (  <integer_expr> "*")*  <monoid> ( "*" <integer_expr>)*
+<monoid> ::= "(" <expr> ")" | <symbol>
+

@@ -1,18 +1,20 @@
+use std::io;
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
+use crate::source::load_source_files;
+use crate::parse_crn;
+use crate::network::NetworkBuilder;
 
-use crate::parser; 
 pub struct Config {
-    callname: String,
     files: Vec<PathBuf>,
     print_usage: bool,
 }
 
 impl Config {
     pub fn build(mut args: impl Iterator<Item = String>) -> Result<Config, &'static str> {
-        let callname = args.next().expect("No callname found...");
+        let _callname = args.next();
 
         let mut files: Vec<PathBuf> = Vec::new();
         let mut print_usage = false;
@@ -43,11 +45,12 @@ impl Config {
         }
 
         Ok(Config {
-            callname,
             files,
             print_usage,
         })
     }
+
+
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
@@ -60,13 +63,17 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         return Err("No files to parse...".into());
     }
 
-    for file in config.files {
-        let contents = fs::read_to_string(file)?;
-        println!("{contents}");
-        let crn = parser::parse(&contents)?;
-        println!("{crn:?}")
-    }
+    let source_files = load_source_files(&config.files)?;
+    for f in source_files {
+        let mut net = NetworkBuilder::new();
+        parse_crn(&mut net, f)?;
 
+        println!("{net:?}");     
+    }
+    // let tokens = source_files.iter().flat_map(|f| Lexer::with_name(f.content().chars(), f.name()));    
+    // let mut parser = Parser::new(tokens);
+    // parser.advance()?;
+      
     Ok(())
 }
 
